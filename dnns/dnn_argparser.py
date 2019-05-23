@@ -28,4 +28,10 @@ parser.add_argument('--optimizer', type=str,
 parser.add_argument('--dataset', type=str,
                     help='dataset for training and testing', default='mnist')
 
+parser.add_argument('--activation', type=str,
+                    help='activation type', default='relu')
+
+parser.add_argument('--loss', type=str,
+                    help='loss function', default='mse')
+
 args = parser.parse_args()
