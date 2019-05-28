@@ -28,13 +28,15 @@ def generate_mobilenet_model(input_shape, num_classes, activation='relu',
         act_to_use = None
         if activation == 'softplus':
             act_to_use = keras.activations.softplus
+        elif activation in ['noisysoftplus', 'noisy_softplus']:
+            act_to_use = NoisySoftplus()
         elif isinstance(activation, NoisySoftplus):
             act_to_use = activation
 
         for layer in model.layers:
             if hasattr(layer, 'activation'):
                 layer.activation = act_to_use
-        with CustomObjectScope({'noisy_softplus_0.17_1': custom_object}):
+        with CustomObjectScope({'noisy_softplus': custom_object}):
             model = apply_modifications(model)
 
     # Return the model

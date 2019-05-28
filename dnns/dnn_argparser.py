@@ -1,10 +1,13 @@
 import argparse
+
 batch_size = 50
 epochs = 20
 learning_rate = 0.1
-decay_rate = learning_rate / epochs
-momentum = 0.8
+decay_rate = 0.1
+momentum = 0.9
 
+DEFAULT_MODEL_DIR = 'models/'
+DEFAULT_RESULT_DIR = 'results/'
 
 parser = argparse.ArgumentParser(
     description='DNN argparser',
@@ -33,5 +36,18 @@ parser.add_argument('--activation', type=str,
 
 parser.add_argument('--loss', type=str,
                     help='loss function', default='mse')
+
+parser.add_argument('--suffix', type=str,
+                    help='loss function', default=None)
+
+parser.add_argument('--model_dir', type=str,
+                    help='directory in which to load and '
+                         'store network architectures',
+                    default=DEFAULT_MODEL_DIR)
+
+parser.add_argument('--result_dir', type=str,
+                    help='directory in which to load and '
+                         'store network architectures',
+                    default=DEFAULT_RESULT_DIR)
 
 args = parser.parse_args()

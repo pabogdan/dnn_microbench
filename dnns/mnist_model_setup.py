@@ -6,7 +6,7 @@ from keras.utils import CustomObjectScope
 from noisy_softplus import NoisySoftplus
 
 
-def generate_model(activation='relu'):
+def generate_mnist_model(activation='relu'):
     '''
     Model is defined in Liu et al 2016
     Noisy Softplus : A Biology Inspired Activation Function
@@ -17,6 +17,9 @@ def generate_model(activation='relu'):
     # input image dimensions
     img_rows, img_cols = 28, 28
     input_shape = (img_rows, img_cols, 1)
+    # deal with string 'nsp'
+    if activation in ['nsp', 'noisysoftplus', 'noisy_softplus']:
+        activation = NoisySoftplus()
 
     model = Sequential()
     # First input convolution (6c5)
@@ -56,13 +59,13 @@ def save_model(model, filename):
 
 if __name__ == "__main__":
     print("Testing the script operation")
-    model_relu = generate_model()
+    model_relu = generate_mnist_model()
     print(model_relu.get_config())
     save_model(model_relu, "relu_mnist_liu2016")
-    model = generate_model(activation='softplus')
+    model = generate_mnist_model(activation='softplus')
     print(model.get_config())
-    save_model(model, "softmax_mnist_liu2016")
-    model = generate_model(activation=NoisySoftplus())
+    save_model(model, "softplus_mnist_liu2016")
+    model = generate_mnist_model(activation=NoisySoftplus())
     print(model.get_config())
     save_model(model, "noisysoftplus_mnist_liu2016")
 
