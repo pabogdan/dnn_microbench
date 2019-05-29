@@ -6,9 +6,18 @@ from keras.models import load_model
 from load_dataset import load_and_preprocess_dataset
 import numpy as np
 
+# Import OS to deal with directories
+import os
+
 # network generation imports
 from mobilenet_model_setup import generate_mobilenet_model
 from mnist_model_setup import generate_mnist_model
+
+# Checking directory structure exists
+if not os.path.isdir(args.result_dir) and not os.path.exists(args.result_dir):
+    os.mkdir(args.result_dir)
+if not os.path.isdir(args.model_dir) and not os.path.exists(args.model_dir):
+    os.mkdir(args.model_dir)
 
 # Optimizer selection
 optimizer = None
@@ -45,6 +54,8 @@ if args.model[0] == ":":
                                          activation=args.activation)
     elif args.model.lower() == "mnist":
         model = generate_mnist_model(activation=args.activation)
+    else:
+        raise NameError("Network model {} unrecognised.".format(args.model))
 
 else:
     # load the model from file
@@ -75,8 +86,10 @@ output_filename += "_" + args.activation
 output_filename += "_" + args.loss
 output_filename += "_" + args.optimizer + suffix
 output_filename += ".csv"
-csv_logger = keras.callbacks.CSVLogger(output_filename, separator=',',
-                                       append=False)
+csv_logger = keras.callbacks.CSVLogger(
+    os.path.join(args.result_dir, output_filename),
+    separator=',',
+    append=False)
 
 model.fit(x_train, y_train,
           batch_size=args.batch,
@@ -89,7 +102,8 @@ score = model.evaluate(x_test, y_test, verbose=1)
 print('Test Loss:', score[0])
 print('Test Accuracy:', score[1])
 
-
-model.save("trained_model_of_" + args.model + "_" + args.activation +
-            "_" + args.loss +
-           "_" + args.optimizer + suffix)
+model.save(os.path.join(
+    args.model_dir,
+    "trained_model_of_" + args.model + "_" + args.activation +
+    "_" + args.loss +
+    "_" + args.optimizer + suffix))
