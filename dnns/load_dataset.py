@@ -2,7 +2,7 @@ from keras.datasets import mnist, cifar10, cifar100
 import keras
 
 
-def load_and_preprocess_dataset(dataset_name):
+def load_and_preprocess_dataset(dataset_name, categorical_output=True):
     # Dataset selection
     if dataset_name.lower() == "mnist":
         # input image dimensions
@@ -24,9 +24,6 @@ def load_and_preprocess_dataset(dataset_name):
         print(x_train.shape[0], 'train samples')
         print(x_test.shape[0], 'test samples')
 
-        # convert class vectors to binary class matrices
-        y_train = keras.utils.to_categorical(y_train, num_classes)
-        y_test = keras.utils.to_categorical(y_test, num_classes)
     elif dataset_name.lower() == "cifar10":
         # input image dimensions
         img_rows, img_cols = 32, 32
@@ -47,11 +44,6 @@ def load_and_preprocess_dataset(dataset_name):
         print('x_train shape:', x_train.shape)
         print(x_train.shape[0], 'train samples')
         print(x_test.shape[0], 'test samples')
-
-        # convert class vectors to binary class matrices
-        y_train = keras.utils.to_categorical(y_train, num_classes)
-        y_test = keras.utils.to_categorical(y_test, num_classes)
-
     elif dataset_name.lower() == "cifar100":
         # input image dimensions
         img_rows, img_cols = 32, 32
@@ -72,15 +64,19 @@ def load_and_preprocess_dataset(dataset_name):
         print('x_train shape:', x_train.shape)
         print(x_train.shape[0], 'train samples')
         print(x_test.shape[0], 'test samples')
+    elif dataset_name.lower() == "imagenet":
+        raise NotImplementedError("{} handling to be supported soon.".format(dataset_name))
+    else:
+        raise NameError("Dataset {} unrecognised.".format(dataset_name))
 
+    if categorical_output:
         # convert class vectors to binary class matrices
         y_train = keras.utils.to_categorical(y_train, num_classes)
         y_test = keras.utils.to_categorical(y_test, num_classes)
-    else:
-        raise NameError("Dataset {} unrecognised.".format(dataset_name))
 
     return {'train': (x_train, y_train),
             'test': (x_test, y_test),
             'img_dims': (img_rows, img_cols),
             'input_shape': input_shape,
-            'num_classes': num_classes}
+            'num_classes': num_classes,
+            'categorical_output': categorical_output}

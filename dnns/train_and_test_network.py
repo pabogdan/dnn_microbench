@@ -21,7 +21,9 @@ if not os.path.isdir(args.model_dir) and not os.path.exists(args.model_dir):
 
 # Optimizer selection
 optimizer = None
-
+learning_rate = 0.1
+decay_rate = 0.1
+momentum = 0.9
 sgd = keras.optimizers.SGD(lr=learning_rate, momentum=momentum,
                            decay=decay_rate, nesterov=False)
 adadelta = keras.optimizers.Adadelta()
@@ -30,17 +32,27 @@ if args.optimizer.lower() == "sgd":
     optimizer = sgd
 elif args.optimizer.lower() in ["ada", "adadelta"]:
     optimizer = adadelta
+else:
+    # Try it as is
+    optimizer = args.optimizer
 # Loss selection
 loss = None
 cross_ent = keras.losses.categorical_crossentropy
 mse = keras.losses.mean_squared_error
 
+is_output_categorical = args.non_categorical
 if args.loss.lower() == "mse":
     loss = mse
 elif args.loss.lower() in ["ent", "crossent", "cross_ent"]:
     loss = cross_ent
+    is_output_categorical = True
+else:
+    # Try it as is
+    loss = args.loss
 
-dataset_info = load_and_preprocess_dataset(args.dataset)
+dataset_info = load_and_preprocess_dataset(
+    args.dataset,
+    categorical_output=is_output_categorical)
 x_train, y_train = dataset_info['train']
 x_test, y_test = dataset_info['test']
 img_rows, img_cols = dataset_info['img_dims']
@@ -53,7 +65,8 @@ if args.model[0] == ":":
         model = generate_mobilenet_model(input_shape, num_classes,
                                          activation=args.activation)
     elif args.model.lower() == "mnist":
-        model = generate_mnist_model(activation=args.activation)
+        model = generate_mnist_model(activation=args.activation,
+                                     categorical_output=is_output_categorical)
     else:
         raise NameError("Network model {} unrecognised.".format(args.model))
 

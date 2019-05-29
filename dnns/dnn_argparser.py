@@ -2,9 +2,6 @@ import argparse
 
 batch_size = 50
 epochs = 20
-learning_rate = 0.1
-decay_rate = 0.1
-momentum = 0.9
 
 DEFAULT_MODEL_DIR = 'models/'
 DEFAULT_RESULT_DIR = 'results/'
@@ -18,6 +15,10 @@ parser.add_argument('model', type=str,
 
 parser.add_argument('--result_filename', type=str,
                     help='filename for results')
+
+parser.add_argument('--non_categorical', dest="non_categorical",
+                    help='filename for results',
+                    action="store_false")
 
 parser.add_argument('--epochs', type=int,
                     help='number of epochs', default=epochs)

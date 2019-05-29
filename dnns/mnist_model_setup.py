@@ -6,7 +6,7 @@ from keras.utils import CustomObjectScope
 from noisy_softplus import NoisySoftplus
 
 
-def generate_mnist_model(activation='relu'):
+def generate_mnist_model(activation='relu', categorical_output=True):
     '''
     Model is defined in Liu et al 2016
     Noisy Softplus : A Biology Inspired Activation Function
@@ -44,7 +44,10 @@ def generate_mnist_model(activation='relu'):
 
     # Fully-connected (FC) layer
     model.add(Flatten())
-    model.add(Dense(10))
+    if categorical_output:
+        model.add(Dense(10))
+    else:
+        model.add(Dense(1))
 
     # Return the model
     return model
