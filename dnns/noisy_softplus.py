@@ -24,7 +24,7 @@ class NoisySoftplus():
 
     '''
 
-    def __init__(self, k=0.20, sigma=200):
+    def __init__(self, k=0.20, sigma=.5):
         self.k = k
         self.sigma = sigma
         self.__name__ = 'noisy_softplus'

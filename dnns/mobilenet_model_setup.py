@@ -66,3 +66,20 @@ if __name__ == "__main__":
                                      activation=NoisySoftplus())
     print(model.get_config())
     save_model(model, "noisysoftplus_cifar10_mobilenet")
+
+
+    img_rows, img_cols = 32, 32
+    input_shape = (img_rows, img_cols, 3)
+    num_classes = 100
+    print("Testing the script operation")
+    model = generate_mobilenet_model(input_shape, num_classes)
+    print(model.get_config())
+    save_model(model, "relu_cifar100_mobilenet")
+    model = generate_mobilenet_model(input_shape, num_classes,
+                                     activation='softplus')
+    print(model.get_config())
+    save_model(model, "softplus_cifar100_mobilenet")
+    model = generate_mobilenet_model(input_shape, num_classes,
+                                     activation=NoisySoftplus())
+    print(model.get_config())
+    save_model(model, "noisysoftplus_cifar100_mobilenet")
