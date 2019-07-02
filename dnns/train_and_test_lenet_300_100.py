@@ -59,9 +59,9 @@ if args.result_filename:
     output_filename = args.result_filename
 else:
     output_filename = "results_for_" + args.model
-output_filename += "_" + args.activation
-output_filename += "_" + args.loss
-output_filename += "_" + args.optimizer + suffix
+output_filename += "_" + "relu"
+output_filename += "_" + "crossent"
+output_filename += "_" + "sgd" + suffix
 output_filename += ".csv"
 
 csv_logger = keras.callbacks.CSVLogger(
@@ -71,8 +71,8 @@ csv_logger = keras.callbacks.CSVLogger(
 tb = keras.callbacks.TensorBoard(
     log_dir='./logs', histogram_freq=0,
     batch_size=batch, write_graph=True,
-    write_grads=False, write_images=True,
-    embeddings_freq=0, embeddings_layer_names=None,
+    write_grads=True, write_images=True,
+    embeddings_freq=1, embeddings_layer_names=None,
     embeddings_metadata=None, embeddings_data=None,
     update_freq='epoch')
 
