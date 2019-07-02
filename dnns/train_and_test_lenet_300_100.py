@@ -59,9 +59,12 @@ if args.result_filename:
     output_filename = args.result_filename
 else:
     output_filename = "results_for_" + args.model
-output_filename += "_" + "relu"
-output_filename += "_" + "crossent"
-output_filename += "_" + "sgd" + suffix
+activation_name = "relu"
+loss_name = "crossent"
+optimizer_name = "sgd"
+output_filename += "_" + activation_name
+output_filename += "_" + loss_name
+output_filename += "_" + optimizer_name + suffix
 output_filename += ".csv"
 
 csv_logger = keras.callbacks.CSVLogger(
@@ -89,6 +92,6 @@ print('Test Accuracy:', score[1])
 
 model.save(os.path.join(
     args.model_dir,
-    "trained_model_of_" + args.model + "_" + args.activation +
-    "_" + args.loss +
-    "_" + args.optimizer + suffix))
+    "trained_model_of_" + args.model + "_" + activation_name +
+    "_" + loss_name +
+    "_" + optimizer_name + suffix))
