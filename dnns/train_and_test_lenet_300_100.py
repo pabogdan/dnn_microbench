@@ -86,7 +86,7 @@ model.fit(x_train, y_train,
           callbacks=[csv_logger, tb],
           validation_split=0)
 
-score = model.evaluate(x_test, y_test, verbose=1, batch_size=args.batch)
+score = model.evaluate(x_test, y_test, verbose=1, batch_size=batch)
 print('Test Loss:', score[0])
 print('Test Accuracy:', score[1])
 
