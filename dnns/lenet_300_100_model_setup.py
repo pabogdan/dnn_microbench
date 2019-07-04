@@ -16,7 +16,8 @@ def generate_lenet_300_100_model(activation='relu', categorical_output=True):
 
     # input image dimensions
     img_rows, img_cols = 28, 28
-    input_shape = (img_rows, img_cols, 1)
+    # input_shape = (img_rows, img_cols, 1)
+    input_shape = (1, img_rows * img_cols)
     reg_coeff = 1e-5
 
     # deal with string 'nsp'

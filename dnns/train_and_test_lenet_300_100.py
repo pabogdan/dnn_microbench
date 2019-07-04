@@ -5,10 +5,9 @@ import keras
 from keras.models import load_model
 from load_dataset import load_and_preprocess_dataset
 import numpy as np
-
+from rewiring_callback import RewiringCallback
 # Import OS to deal with directories
 import os
-
 # network generation imports
 from mobilenet_model_setup import generate_mobilenet_model
 from mnist_model_setup import generate_mnist_model
@@ -29,7 +28,12 @@ img_rows, img_cols = dataset_info['img_dims']
 input_shape = dataset_info['input_shape']
 num_classes = dataset_info['num_classes']
 
-n_epochs = 10
+# reshape input to flatten data
+x_train = x_train.reshape(x_train.shape[0], 1, np.prod(x_train.shape[1:]))
+x_test = x_test.reshape(x_test.shape[0], 1, np.prod(x_test.shape[1:]))
+
+print(x_train.shape)
+epochs = 10
 batch = 10
 learning_rate = 0.5
 decay_rate = 0.8
@@ -67,23 +71,28 @@ output_filename += "_" + loss_name
 output_filename += "_" + optimizer_name + suffix
 output_filename += ".csv"
 
+connectivity_proportion = [.01, .03, .3]
+
 csv_logger = keras.callbacks.CSVLogger(
     os.path.join(args.result_dir, output_filename),
     separator=',',
     append=False)
 tb = keras.callbacks.TensorBoard(
-    log_dir='./logs', histogram_freq=0,
+    log_dir='./logs',
+    histogram_freq=0,  # turning this on needs validation_data in model.fit
     batch_size=batch, write_graph=True,
     write_grads=True, write_images=True,
-    embeddings_freq=1, embeddings_layer_names=None,
+    embeddings_freq=0, embeddings_layer_names=None,
     embeddings_metadata=None, embeddings_data=None,
     update_freq='epoch')
+
+deep_r = RewiringCallback(connectivity_proportion=connectivity_proportion)
 
 model.fit(x_train, y_train,
           batch_size=batch,
           epochs=epochs,
           verbose=1,
-          callbacks=[csv_logger, tb],
+          callbacks=[csv_logger, tb, deep_r],
           validation_split=0)
 
 score = model.evaluate(x_test, y_test, verbose=1, batch_size=batch)
