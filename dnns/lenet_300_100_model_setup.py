@@ -4,6 +4,7 @@ from keras.layers import Dense, Activation, \
     Conv2D, AveragePooling2D, Flatten
 from keras.utils import CustomObjectScope
 from noisy_softplus import NoisySoftplus
+from sparse_layer import Sparse
 
 
 def generate_lenet_300_100_model(activation='relu', categorical_output=True):
@@ -45,6 +46,61 @@ def generate_lenet_300_100_model(activation='relu', categorical_output=True):
     else:
         model.add(Dense(1))
 
+    # Return the model
+    return model
+
+
+def generate_sparse_lenet_300_100_model(activation='relu',
+                                        categorical_output=True, ):
+    '''
+    Model is defined in Liu et al 2016
+    Noisy Softplus : A Biology Inspired Activation Function
+    :return: the architecture of the network
+    :rtype: keras.models.Sequential
+    '''
+
+    # input image dimensions
+    img_rows, img_cols = 28, 28
+    # input_shape = (img_rows, img_cols, 1)
+    input_shape = (1, img_rows * img_cols)
+    reg_coeff = 1e-5
+
+    builtin_sparsity = [.01, .03, .3]
+
+    # deal with string 'nsp'
+    if activation in ['nsp', 'noisysoftplus', 'noisy_softplus']:
+        activation = NoisySoftplus()
+
+    model = Sequential()
+    # First (input) layer (FC 300)
+    model.add(Sparse(units=300,
+                     # consume the first entry in builtin_sparsity
+                     connectivity_level=builtin_sparsity.pop(0),
+                     input_shape=input_shape,
+                     # use_bias=False,
+                     activation=activation,
+                     batch_size=10,
+                     kernel_regularizer=keras.regularizers.l1(reg_coeff)))
+
+    # Second layer (FC 100)
+    model.add(Sparse(units=100,
+                     # consume the 2nd entry in builtin_sparsity
+                     connectivity_level=builtin_sparsity.pop(0),
+                     activation=activation,
+                     kernel_regularizer=keras.regularizers.l1(reg_coeff)))
+
+    # Fully-connected (FC) layer
+    model.add(Flatten())
+    if categorical_output:
+        model.add(Sparse(units=10,
+                         # consume the last entry in builtin_sparsity
+                         connectivity_level=builtin_sparsity.pop(0),
+                         activation='softmax'))
+    else:
+        model.add(Sparse(units=1,
+                         # consume the last entry in builtin_sparsity
+                         connectivity_level=builtin_sparsity.pop(0),))
+    assert len(builtin_sparsity) == 0
     # Return the model
     return model
 

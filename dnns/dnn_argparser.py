@@ -1,7 +1,7 @@
 import argparse
 
 batch_size = 50
-epochs = 20
+# epochs = 20
 
 DEFAULT_MODEL_DIR = 'models/'
 DEFAULT_RESULT_DIR = 'results/'
@@ -20,8 +20,12 @@ parser.add_argument('--non_categorical', dest="non_categorical",
                     help='filename for results',
                     action="store_false")
 
+parser.add_argument('--sparse_layers',
+                    help='Use sparse layers',
+                    action="store_true")
+
 parser.add_argument('--epochs', type=int,
-                    help='number of epochs', default=epochs)
+                    help='number of epochs', default=None)
 
 parser.add_argument('--batch', type=int,
                     help='batch size', default=batch_size)
