@@ -24,6 +24,12 @@ parser.add_argument('--sparse_layers',
                     help='Use sparse layers',
                     action="store_true")
 
+
+parser.add_argument('--disable_rewiring',
+                    help='For testing the accuracy one could '
+                         'get with no rewiring',
+                    action="store_true")
+
 parser.add_argument('--epochs', type=int,
                     help='number of epochs', default=None)
 

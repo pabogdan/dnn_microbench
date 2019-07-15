@@ -12,10 +12,7 @@ class RewiringCallback(Callback):
         self.connectivity_proportion = connectivity_proportion
         self.soft_limit = soft_limit
         self.fixed_conn = fixed_conn
-        self._data = {
-            'no_connections': {},
-            'proportion_connections': {},
-        }
+        self._data = {}
         self._batch_rewires = {}
 
     @staticmethod
@@ -29,6 +26,13 @@ class RewiringCallback(Callback):
                 masks.append(K.get_value(layer.mask))
                 layers.append(layer)
         return np.asarray(kernels), np.asarray(masks), layers
+
+    def on_epoch_begin(self, epoch, logs=None):
+        logs = logs or {}
+        _, _, layers = \
+            RewiringCallback.get_kernels_and_masks(self.model)
+        for l in layers:
+            self._batch_rewires["rewirings_for_layer_{}".format(l.name)] = 0
 
     def on_batch_begin(self, batch, logs=None):
         # save the weights before updating to compare sign later
@@ -50,6 +54,8 @@ class RewiringCallback(Callback):
 
             # check that the connectivity is at the correct amount
             assert (np.sum(m) / float(m.size) == self.connectivity_proportion[i])
+
+
 
         for pre_m, post_m in zip(self.pre_masks, self.post_masks):
             assert np.all(pre_m == post_m)
@@ -80,6 +86,11 @@ class RewiringCallback(Callback):
 
             # update the mask by selecting other synapses to be active
             number_needing_rewiring = need_rewiring[0].size
+            self._batch_rewires["rewirings_for_layer_{}".format(l.name)] += \
+                number_needing_rewiring
+
+            logs.update(self._batch_rewires)
+
             post_m[need_rewiring] = 0
             rewiring_candidates = np.where(post_m == 0)
             chosen_partners = np.random.choice(
@@ -91,7 +102,6 @@ class RewiringCallback(Callback):
             new_m[rewiring_candidates[0][chosen_partners], rewiring_candidates[1][chosen_partners]] = 1
             # enable the new connections
             K.set_value(l.mask, new_m)
-            ...
 
         # old_sign = []
         # for row, ws in enumerate(self.weights_before_learning):
@@ -116,16 +126,22 @@ class RewiringCallback(Callback):
         # reporting stuff
 
     def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
         print("\nEpoch {:3} results:".format(epoch))
         for k, m, l in zip(self.post_kernels, self.post_masks, self.layers):
-            self._data['no_connections'][epoch] = np.sum(m)
-            self._data['proportion_connections'][epoch] = np.sum(m) / float(m.size)
+            self._data['no_connections_{}'.format(l.name)] = np.sum(m)
+            self._data['no_rewires_for_layer_{}'.format(l.name)] = \
+                self._batch_rewires["rewirings_for_layer_{}".format(l.name)]
+            self._data['proportion_connections_{}'.format(l.name)] = np.sum(m) / float(m.size)
             print("Layer {:10} has {:8} connections, corresponding to "
                   "{:>5.1%} of "
                   "the total connectivity".format(
                 l.name,
-                self._data['no_connections'][epoch],
-                self._data['proportion_connections'][epoch]))
+                self._data['no_connections_{}'.format(l.name)],
+                self._data['proportion_connections_{}'.format(l.name)]))
+        logs.update(dict(logs.items() | self._data.items()))
+        return logs
+
 
     def stats(self):
         return {
