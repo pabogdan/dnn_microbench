@@ -7,14 +7,11 @@ class NoisySGD(SGD):
 
     def __init__(self, lr=0.01, momentum=0., decay=0.,
                  nesterov=False, temperature=0.,
-                 gradient_noise_coeefficient=1e-6, **kwargs):
+                 gradient_noise_coefficient=1e-6, **kwargs):
         super(NoisySGD, self).__init__(lr=lr, momentum=momentum, decay=decay,
                                        nesterov=nesterov, **kwargs)
         self.temperature = temperature
-        self.gradient_noise_coeefficient = gradient_noise_coeefficient
-        # with K.name_scope(self.__class__.__name__):
-        #     self.noise = K.random_normal(shape=stddev=gradient_noise_coeefficient)
-
+        self.gradient_noise_coefficient = gradient_noise_coefficient
 
     @interfaces.legacy_get_updates_support
     def get_updates(self, loss, params):
@@ -33,7 +30,7 @@ class NoisySGD(SGD):
             v = self.momentum * m - lr * g  # velocity
             self.updates.append(K.update(m, v))
             noise = K.random_normal(shape=K.shape(p),
-                                    stddev=self.gradient_noise_coeefficient)
+                                    stddev=self.gradient_noise_coefficient)
             # temperature_update =
             if self.nesterov:
                 new_p = p + self.momentum * v - lr * g + lr * noise
@@ -47,3 +44,9 @@ class NoisySGD(SGD):
             self.updates.append(K.update(p, new_p))
         return self.updates
 
+    def get_config(self):
+        config = {'temperature': self.temperature,
+                  'gradient_noise_coeefficient': self.gradient_noise_coefficient
+                  }
+        base_config = super(SGD, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
