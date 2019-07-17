@@ -39,19 +39,28 @@ print(x_train.shape)
 epochs = args.epochs or 10
 batch = 10
 learning_rate = 0.5
-decay_rate = 0.9  # changed from 0.8
+decay_rate = 0.8  # changed from 0.8
 
 connectivity_proportion = [.01, .03, .3]
 
 # TODO implement custom optimizer to include noise and temperature
 if args.optimizer.lower() == "sgd":
-    optimizer = keras.optimizers.SGD(lr=learning_rate,
-                                     decay=decay_rate, nesterov=False)
+    if not args.sparse_layers:
+        optimizer = keras.optimizers.SGD()
+    else:
+        optimizer = keras.optimizers.SGD(lr=learning_rate)
     optimizer_name = "sgd"
 
 elif args.optimizer.lower() in ["ada", "adadelta"]:
     optimizer = keras.optimizers.adadelta()
     optimizer_name = "adadelta"
+elif args.optimizer.lower() in ["noisy_sgd", "ns"]:
+    from noisy_sgd import NoisySGD
+    if not args.sparse_layers:
+        optimizer = NoisySGD()
+    else:
+        optimizer = NoisySGD(lr=learning_rate)
+    optimizer_name = "noisy_sgd"
 else:
     optimizer = args.optimizer
     optimizer_name = args.optimizer
