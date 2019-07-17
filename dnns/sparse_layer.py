@@ -56,8 +56,6 @@ class Sparse(Layer):
         #                             initializer=keras.initializers.Zeros(),
         #                             trainable=False)
 
-
-
         if self.use_bias:
             self.bias = self.add_weight(shape=(self.units,),
                                         initializer=self.bias_initializer,
@@ -88,8 +86,6 @@ class Sparse(Layer):
         self.input_spec = InputSpec(min_ndim=2, axes={-1: input_dim})
         # Be sure to call this at the end
         super(Sparse, self).build(input_shape)
-
-
 
     def add_update(self, updates, inputs=None):
         super(Sparse, self).add_update(updates, inputs)
@@ -123,7 +119,8 @@ class Sparse(Layer):
             'activity_regularizer':
                 regularizers.serialize(self.activity_regularizer),
             'kernel_constraint': constraints.serialize(self.kernel_constraint),
-            'bias_constraint': constraints.serialize(self.bias_constraint)
+            'bias_constraint': constraints.serialize(self.bias_constraint),
+            'connectivity_level': self.connectivity_level
         }
 
         base_config = super(Sparse, self).get_config()
