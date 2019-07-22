@@ -1,20 +1,32 @@
 from dnn_argparser import *
-from noisy_softplus import NoisySoftplus
 # Keras stuff
 import keras
-from keras.models import load_model
 from load_dataset import load_and_preprocess_dataset
 import numpy as np
 
-from rewiring_adadelta import RewiringAdadelta
 from rewiring_callback import RewiringCallback
 # Import OS to deal with directories
 import os
 # network generation imports
-from mobilenet_model_setup import generate_mobilenet_model
-from mnist_model_setup import generate_mnist_model
 from lenet_300_100_model_setup import generate_lenet_300_100_model, \
     generate_sparse_lenet_300_100_model
+import tensorflow as tf
+from keras import backend as K
+import pylab as plt
+
+start_time = plt.datetime.datetime.now()
+# Get number of cores reserved by the batch system
+# (NSLOTS is automatically set, or use 4 otherwise)
+NUMCORES=int(os.getenv("NSLOTS", 4))
+print("Using", NUMCORES, "core(s)")
+
+# Create TF session using correct number of cores
+sess = tf.Session(config=tf.ConfigProto(inter_op_parallelism_threads=NUMCORES,
+   intra_op_parallelism_threads=NUMCORES, allow_soft_placement=True,
+   device_count = {'CPU': NUMCORES}))
+
+# Set the Keras TF session
+K.set_session(sess)
 
 # Checking directory structure exists
 if not os.path.isdir(args.result_dir) and not os.path.exists(args.result_dir):
@@ -43,7 +55,6 @@ decay_rate = 0.8  # changed from 0.8
 
 connectivity_proportion = [.01, .03, .3]
 
-# TODO implement custom optimizer to include noise and temperature
 if args.optimizer.lower() == "sgd":
     if not args.sparse_layers:
         optimizer = keras.optimizers.SGD()
@@ -55,6 +66,7 @@ elif args.optimizer.lower() in ["ada", "adadelta"]:
     optimizer = keras.optimizers.adadelta()
     optimizer_name = "adadelta"
 elif args.optimizer.lower() in ["noisy_sgd", "ns"]:
+    # custom optimizer to include noise and temperature
     from noisy_sgd import NoisySGD
     if not args.sparse_layers:
         optimizer = NoisySGD()
@@ -113,23 +125,25 @@ csv_logger = keras.callbacks.CSVLogger(
     separator=',',
     append=False)
 
-tb_log_filename = "./sparse_logs" if args.sparse_layers else "./dense_logs"
-
-tb = keras.callbacks.TensorBoard(
-    log_dir=tb_log_filename,
-    histogram_freq=0,  # turning this on needs validation_data in model.fit
-    batch_size=batch, write_graph=True,
-    write_grads=True, write_images=True,
-    embeddings_freq=0, embeddings_layer_names=None,
-    embeddings_metadata=None, embeddings_data=None,
-    update_freq='epoch')
 
 callback_list = []
 if args.sparse_layers:
     callback_list.append(deep_r)
 
-callback_list += [csv_logger, tb]
-# model.fit(x_train[:100], y_train[:100],
+if args.tensorboard:
+    tb_log_filename = "./sparse_logs" if args.sparse_layers else "./dense_logs"
+
+    tb = keras.callbacks.TensorBoard(
+        log_dir=tb_log_filename,
+        histogram_freq=0,  # turning this on needs validation_data in model.fit
+        batch_size=batch, write_graph=True,
+        write_grads=True, write_images=True,
+        embeddings_freq=0, embeddings_layer_names=None,
+        embeddings_metadata=None, embeddings_data=None,
+        update_freq='epoch')
+    callback_list.append(tb)
+
+callback_list.append(csv_logger)
 model.fit(x_train, y_train,
           batch_size=batch,
           epochs=epochs,
@@ -153,3 +167,6 @@ model.save(model_path)
 
 print("Results (csv) saved at", csv_path)
 print("Model saved at", model_path)
+end_time = plt.datetime.datetime.now()
+total_time = end_time - start_time
+print("Total time elapsed -- " + str(total_time))

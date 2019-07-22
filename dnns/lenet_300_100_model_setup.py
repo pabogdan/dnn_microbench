@@ -33,14 +33,12 @@ def generate_lenet_300_100_model(activation='relu', categorical_output=True):
                     activation=activation,
                     batch_size=10,
                     kernel_regularizer=keras.regularizers.l1(reg_coeff),
-                    # activity_regularizer=keras.regularizers.l1(reg_coeff)
                     ))
 
     # Second layer (FC 100)
     model.add(Dense(units=100,
                     activation=activation,
                     kernel_regularizer=keras.regularizers.l1(reg_coeff),
-                    # activity_regularizer=keras.regularizers.l1(reg_coeff)
                     ))
 
     # Fully-connected (FC) layer

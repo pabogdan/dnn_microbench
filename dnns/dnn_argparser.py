@@ -30,6 +30,10 @@ parser.add_argument('--disable_rewiring',
                          'get with no rewiring',
                     action="store_true")
 
+parser.add_argument('--tensorboard',
+                    help='Whether to create tensorboard statistics',
+                    action="store_true")
+
 parser.add_argument('--epochs', type=int,
                     help='number of epochs', default=None)
 
@@ -60,5 +64,7 @@ parser.add_argument('--result_dir', type=str,
                     help='directory inp which to load and '
                          'store network architectures',
                     default=DEFAULT_RESULT_DIR)
+
+
 
 args = parser.parse_args()
