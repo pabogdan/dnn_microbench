@@ -5,7 +5,7 @@ import keras
 from keras.models import load_model
 from load_dataset import load_and_preprocess_dataset
 import numpy as np
-
+from keras_preprocessing.image import ImageDataGenerator
 from rewiring_callback import RewiringCallback
 # Import OS to deal with directories
 import os
@@ -19,13 +19,13 @@ import pylab as plt
 start_time = plt.datetime.datetime.now()
 # Get number of cores reserved by the batch system
 # (NSLOTS is automatically set, or use 4 otherwise)
-NUMCORES=int(os.getenv("NSLOTS", 4))
+NUMCORES = int(os.getenv("NSLOTS", 4))
 print("Using", NUMCORES, "core(s)")
 
 # Create TF session using correct number of cores
 sess = tf.Session(config=tf.ConfigProto(inter_op_parallelism_threads=NUMCORES,
-   intra_op_parallelism_threads=NUMCORES, allow_soft_placement=True,
-   device_count = {'CPU': NUMCORES}))
+                                        intra_op_parallelism_threads=NUMCORES, allow_soft_placement=True,
+                                        device_count={'CPU': NUMCORES}))
 
 # Set the Keras TF session
 K.set_session(sess)
@@ -121,32 +121,87 @@ csv_logger = keras.callbacks.CSVLogger(
     separator=',',
     append=False)
 
-tb_log_filename = "./sparse_logs" if args.sparse_layers else "./dense_logs"
-
-tb = keras.callbacks.TensorBoard(
-    log_dir=tb_log_filename,
-    histogram_freq=0,  # turning this on needs validation_data in model.fit
-    batch_size=batch, write_graph=True,
-    write_grads=True, write_images=True,
-    embeddings_freq=0, embeddings_layer_names=None,
-    embeddings_metadata=None, embeddings_data=None,
-    update_freq='epoch')
-
 callback_list = []
 if args.sparse_layers:
     callback_list.append(deep_r)
 
-callback_list += [csv_logger, tb]
-model.fit(x_train[:x_train.shape[0]-(x_train.shape[0] % batch)],
-          y_train[:x_train.shape[0]-(x_train.shape[0] % batch)],
-          batch_size=batch,
-          epochs=epochs,
-          verbose=1,
-          callbacks=callback_list,
-          validation_data=(x_test, y_test),
-          shuffle=True
-          # validation_split=.2
-          )
+if args.tensorboard:
+    tb_log_filename = "./sparse_logs" if args.sparse_layers else "./dense_logs"
+
+    tb = keras.callbacks.TensorBoard(
+        log_dir=tb_log_filename,
+        histogram_freq=0,  # turning this on needs validation_data in model.fit
+        batch_size=batch, write_graph=True,
+        write_grads=True, write_images=True,
+        embeddings_freq=0, embeddings_layer_names=None,
+        embeddings_metadata=None, embeddings_data=None,
+        update_freq='epoch')
+    callback_list.append(tb)
+
+callback_list.append(csv_logger)
+
+if not args.data_augmentation:
+    model.fit(x_train[:x_train.shape[0] - (x_train.shape[0] % batch)],
+              y_train[:x_train.shape[0] - (x_train.shape[0] % batch)],
+              batch_size=batch,
+              epochs=epochs,
+              verbose=1,
+              callbacks=callback_list,
+              validation_data=(x_test, y_test),
+              shuffle=True
+              # validation_split=.2
+              )
+else:
+    print('Using real-time data augmentation.')
+    # This will do preprocessing and realtime data augmentation:
+    datagen = ImageDataGenerator(
+        featurewise_center=False,  # set input mean to 0 over the dataset
+        samplewise_center=False,  # set each sample mean to 0
+        featurewise_std_normalization=False,  # divide inputs by std of the dataset
+        samplewise_std_normalization=False,  # divide each input by its std
+        zca_whitening=False,  # apply ZCA whitening
+        zca_epsilon=1e-06,  # epsilon for ZCA whitening
+        rotation_range=0,  # randomly rotate images in the range (degrees, 0 to 180)
+        # randomly shift images horizontally (fraction of total width)
+        width_shift_range=0.1,
+        # randomly shift images vertically (fraction of total height)
+        height_shift_range=0.1,
+        shear_range=0.,  # set range for random shear
+        zoom_range=0.,  # set range for random zoom
+        channel_shift_range=0.,  # set range for random channel shifts
+        # set mode for filling points outside the input boundaries
+        fill_mode='nearest',
+        cval=0.,  # value used for fill_mode = "constant"
+        horizontal_flip=True,  # randomly flip images
+        vertical_flip=False,  # randomly flip images
+        # set rescaling factor (applied before any other transformation)
+        rescale=None,
+        # set function that will be applied on each input
+        preprocessing_function=None,
+        # image data format, either "channels_first" or "channels_last"
+        data_format="channels_last",
+        # fraction of images reserved for validation (strictly between 0 and 1)
+        validation_split=0.0
+    )
+
+    # Compute quantities required for feature-wise normalization
+    # (std, mean, and principal components if ZCA whitening is applied).
+    datagen.fit(x_train)
+    steps_per_epoch = x_train.shape[0] // batch
+    print("Steps per epoch", steps_per_epoch)
+    # Fit the model on the batches generated by datagen.flow().
+    model.fit_generator(datagen.flow(x_train[:steps_per_epoch*batch],
+                                     y_train[:steps_per_epoch*batch],
+                                     batch_size=batch),
+                        epochs=epochs,
+                        callbacks=callback_list,
+                        steps_per_epoch=steps_per_epoch,
+                        validation_data=(x_test, y_test))
+
+end_time = plt.datetime.datetime.now()
+total_time = end_time - start_time
+
+print("Total time elapsed -- " + str(total_time))
 
 score = model.evaluate(x_test, y_test, verbose=1, batch_size=batch)
 print('Test Loss:', score[0])
@@ -162,7 +217,3 @@ model.save(model_path)
 
 print("Results (csv) saved at", csv_path)
 print("Model saved at", model_path)
-
-end_time = plt.datetime.datetime.now()
-total_time = end_time - start_time
-print("Total time elapsed -- " + str(total_time))

@@ -30,6 +30,11 @@ parser.add_argument('--disable_rewiring',
                          'get with no rewiring',
                     action="store_true")
 
+
+parser.add_argument('--data_augmentation',
+                    help='enable data augmentation',
+                    action="store_true")
+
 parser.add_argument('--tensorboard',
                     help='Whether to create tensorboard statistics',
                     action="store_true")
