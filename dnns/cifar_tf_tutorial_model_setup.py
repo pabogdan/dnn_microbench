@@ -4,7 +4,7 @@ from keras.layers import Dense, Activation, \
     Conv2D, AveragePooling2D, Flatten, MaxPooling2D, BatchNormalization
 from keras.utils import CustomObjectScope
 from noisy_softplus import NoisySoftplus
-from sparse_layer import Sparse
+from sparse_layer import Sparse, SparseConv2D
 
 
 def generate_cifar_tf_tutorial_model(activation='relu', batch_size=128):
@@ -108,7 +108,7 @@ def generate_cifar_tf_tutorial_model(activation='relu', batch_size=128):
     return model
 
 
-def generate_sparse_cifar_tf_tutorial_model(activation='relu'):
+def generate_sparse_cifar_tf_tutorial_model(activation='relu', batch_size=128):
     '''
     Model is defined in  https://www.tensorflow.org/tutorials/images/deep_cnn
     and
@@ -126,15 +126,16 @@ def generate_sparse_cifar_tf_tutorial_model(activation='relu'):
     :return: the architecture of the network
     :rtype: keras.models.Sequential
     '''
-
-    # input image dimensions
-    img_rows, img_cols = 28, 28
+    img_rows, img_cols = 32, 32
     input_shape = (img_rows, img_cols, 3)  # 3 channels in CIFAR
     # input_shape = (1, img_rows * img_cols)
     reg_coeff = 1e-5
 
+    p_0 = .05  # global connectivity level
+    builtin_sparsity = [8 * p_0, .8 * p_0, 8 * p_0, 1]
+
     # https://github.com/tensorflow/models/blob/master/tutorials/image/cifar10/cifar10.py#L47
-    batch_size = 128
+    # batch_size = 128
 
     # deal with string 'nsp'
     if activation in ['nsp', 'noisysoftplus', 'noisy_softplus']:
@@ -146,53 +147,73 @@ def generate_sparse_cifar_tf_tutorial_model(activation='relu'):
                      kernel_size=(5, 5),
                      input_shape=input_shape,
                      batch_size=batch_size,
-                     bias_initializer=keras.initializers.Zeros,
-                     strides=[1, 1, 1, 1],
-                     padding="SAME"
+                     bias_initializer=keras.initializers.Zeros(),
+                     strides=[1, 1],
+                     padding="SAME",
+                     name="conv1"
                      )
               )
 
     # Pool1
-    model.add(MaxPooling2D(padding="SAME"
+    model.add(MaxPooling2D(padding="SAME",
+                           name="pool1"
                            )
               )
     # Norm1
-    # model.add(NOr)
+    model.add(BatchNormalization(name="norm1"))
 
     # Conv2
-    model.add(Conv2D(filters=64,
-                     kernel_size=(5, 5),
-                     bias_initializer=keras.initializers.Constant(0.1)
-                     )
+    model.add(SparseConv2D(filters=64,
+                           # consume the first entry in builtin_sparsity
+                           connectivity_level=builtin_sparsity.pop(0),
+                           kernel_size=(5, 5),
+                           bias_initializer=keras.initializers.Constant(0.1),
+                           name="conv2"
+                           )
               )
 
-    # Norm2 (why is this before Pool2?)
+    # Norm2 (#TODO why is this before Pool2?)
+    model.add(BatchNormalization(name="norm2"))
 
     # Pool2
-    model.add(MaxPooling2D(padding="SAME"
+    model.add(MaxPooling2D(padding="SAME",
+                           name="pool2"
                            )
               )
 
     # Flatten
     model.add(Flatten())
     # Local3 (FC 300)
-    model.add(Dense(units=384,
-                    input_shape=input_shape,
-                    # use_bias=False,
-                    activation=activation,
-                    batch_size=10,
-                    kernel_regularizer=keras.regularizers.l1(reg_coeff),
-                    ))
+    model.add(Sparse(units=384,
+                     input_shape=input_shape,
+                     # consume the 2nd entry in builtin_sparsity
+                     connectivity_level=builtin_sparsity.pop(0),
+                     # use_bias=False,
+                     activation=activation,
+                     kernel_regularizer=keras.regularizers.l1(reg_coeff),
+                     bias_initializer=keras.initializers.Constant(0.1),
+                     name="local3"
+                     ))
 
     # Local4 (FC 100)
-    model.add(Dense(units=192,
-                    activation=activation,
-                    kernel_regularizer=keras.regularizers.l1(reg_coeff),
-                    ))
+    model.add(Sparse(units=192,
+                     activation=activation,
+                     # consume the 3rd entry in builtin_sparsity
+                     connectivity_level=builtin_sparsity.pop(0),
+                     kernel_regularizer=keras.regularizers.l1(reg_coeff),
+                     bias_initializer=keras.initializers.Constant(0.1),
+                     name="local4"
+                     ))
 
     # Fully-connected (FC) layer
-    model.add(Dense(10, activation='softmax'))
-
+    model.add(Sparse(10, activation='softmax',
+                     # consume the last entry in builtin_sparsity
+                     connectivity_level=builtin_sparsity.pop(0),
+                     bias_initializer=keras.initializers.Zeros(),
+                     name="output"
+                     )
+              )
+    assert len(builtin_sparsity) == 0
     # Return the model
     return model
 

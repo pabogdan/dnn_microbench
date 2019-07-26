@@ -7,7 +7,7 @@ from keras import backend as K
 
 class RewiringCallback(Callback):
 
-    def __init__(self, connectivity_proportion, soft_limit=False, fixed_conn=False):
+    def __init__(self, connectivity_proportion=None, soft_limit=False, fixed_conn=False):
         super(RewiringCallback, self).__init__()
         self.connectivity_proportion = connectivity_proportion
         self.soft_limit = soft_limit
@@ -21,7 +21,7 @@ class RewiringCallback(Callback):
         masks = []
         layers = []
         for layer in model.layers:
-            if hasattr(layer, "kernel"):
+            if hasattr(layer, "mask"):
                 kernels.append(K.get_value(layer.kernel))
                 masks.append(K.get_value(layer.mask))
                 layers.append(layer)
@@ -53,7 +53,14 @@ class RewiringCallback(Callback):
             # check that pre and post masks are identical
 
             # check that the connectivity is at the correct amount
-            assert (np.sum(m) / float(m.size) == self.connectivity_proportion[i])
+            assumed_prop = np.sum(m) / float(m.size)
+            if self.connectivity_proportion:
+                conn_prop = self.connectivity_proportion[i]
+            else:
+                conn_prop = l.connectivity_level
+            assert (np.isclose(assumed_prop, conn_prop, 0.0001)), \
+                "{} vs. {}".format(assumed_prop, conn_prop)
+
 
 
 
@@ -92,14 +99,15 @@ class RewiringCallback(Callback):
             logs.update(self._batch_rewires)
 
             post_m[need_rewiring] = 0
-            rewiring_candidates = np.where(post_m == 0)
-            chosen_partners = np.random.choice(
+            rewiring_candidates = np.asarray(np.where(post_m == 0))
+            choices = np.random.choice(
                 np.arange(rewiring_candidates[0].size),
                 number_needing_rewiring,
                 replace=False)
+            chosen_partners = tuple(rewiring_candidates[:, choices])
 
             new_m = post_m
-            new_m[rewiring_candidates[0][chosen_partners], rewiring_candidates[1][chosen_partners]] = 1
+            new_m[chosen_partners] = 1
             # enable the new connections
             K.set_value(l.mask, new_m)
 

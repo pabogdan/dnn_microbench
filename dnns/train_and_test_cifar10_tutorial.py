@@ -87,8 +87,7 @@ model.summary()
 
 # disable rewiring with sparse layers to see the performance of the layer
 # when 90% of connections are disabled and static
-deep_r = RewiringCallback(connectivity_proportion=connectivity_proportion,
-                          fixed_conn=args.disable_rewiring)
+deep_r = RewiringCallback(fixed_conn=args.disable_rewiring)
 model.compile(
     optimizer=optimizer,
     loss=loss,
