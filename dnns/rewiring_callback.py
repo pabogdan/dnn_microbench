@@ -97,6 +97,8 @@ class RewiringCallback(Callback):
                 number_needing_rewiring
 
             logs.update(self._batch_rewires)
+            if number_needing_rewiring == 0:
+                continue
 
             post_m[need_rewiring] = 0
             rewiring_candidates = np.asarray(np.where(post_m == 0))
