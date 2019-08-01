@@ -46,7 +46,7 @@ class NoisySGD(SGD):
 
     def get_config(self):
         config = {'temperature': self.temperature,
-                  'gradient_noise_coeefficient': self.gradient_noise_coefficient
+                  'gradient_noise_coefficient': self.gradient_noise_coefficient
                   }
         base_config = super(SGD, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
