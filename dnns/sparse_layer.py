@@ -8,7 +8,8 @@ from keras.utils import conv_utils
 
 class Sparse(Layer):
 
-    def __init__(self, units, connectivity_level, activation=None,
+    def __init__(self, units, connectivity_level=None,
+                 activation=None,
                  use_bias=True,
                  kernel_initializer='glorot_uniform',
                  bias_initializer='zeros',
@@ -44,19 +45,6 @@ class Sparse(Layer):
                                       regularizer=self.kernel_regularizer,
                                       constraint=self.kernel_constraint)
 
-        # self.signs = self.add_weight(name='sign',
-        #                              shape=(input_dim, self.units),
-        #                              initializer=self.kernel_initializer,
-        #                              trainable=False,
-        #                              regularizer=self.kernel_regularizer,
-        #                              constraint=self.kernel_constraint)
-
-        # only some of the values in kernel can be updated, based on this mask
-        # self.mask = self.add_weight(name='mask',
-        #                             shape=(input_dim, self.units),
-        #                             initializer=keras.initializers.Zeros(),
-        #                             trainable=False)
-
         if self.use_bias:
             self.bias = self.add_weight(shape=(self.units,),
                                         initializer=self.bias_initializer,
@@ -69,7 +57,7 @@ class Sparse(Layer):
         # Set the correct initial values here
         # use K.set_value(x, value)
         total_number_of_matrix_entries = input_dim * self.units
-        number_of_active_synapses = int(self.connectivity_level *
+        number_of_active_synapses = int((self.connectivity_level or 1) *
                                         total_number_of_matrix_entries)
         # https://stackoverflow.com/questions/47941079/can-i-make-random-mask-with-numpy?rq=1
         _pre_mask = np.zeros(total_number_of_matrix_entries, int)
@@ -80,6 +68,9 @@ class Sparse(Layer):
         # set this as the mask
         # K.set_value(self.mask, _pre_mask)
         self.mask = K.variable(_pre_mask, name="mask")
+
+        # keep track of TF Variable (weights)
+        self.original_kernel = self.kernel
 
         # apply mask
         self.kernel = self.kernel * self.mask
@@ -117,8 +108,7 @@ class Sparse(Layer):
             'bias_initializer': initializers.serialize(self.bias_initializer),
             'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
             'bias_regularizer': regularizers.serialize(self.bias_regularizer),
-            'activity_regularizer':
-                regularizers.serialize(self.activity_regularizer),
+            'activity_regularizer': regularizers.serialize(self.activity_regularizer),
             'kernel_constraint': constraints.serialize(self.kernel_constraint),
             'bias_constraint': constraints.serialize(self.bias_constraint),
             'connectivity_level': self.connectivity_level
@@ -127,8 +117,6 @@ class Sparse(Layer):
         base_config = super(Sparse, self).get_config()
 
         return dict(list(base_config.items()) + list(config.items()))
-
-
 
 
 class SparseConv2D(Layer):
@@ -187,10 +175,12 @@ class SparseConv2D(Layer):
         bias_constraint: Constraint function applied to the bias vector
             (see [constraints](../constraints.md)).
     """
+
     def __init__(self,
                  filters,
                  kernel_size,
-                 connectivity_level,
+                 connectivity_level=None,
+                 rank=2,
                  strides=1,
                  padding='valid',
                  data_format=None,
@@ -206,7 +196,6 @@ class SparseConv2D(Layer):
                  bias_constraint=None,
                  **kwargs):
         super(SparseConv2D, self).__init__(**kwargs)
-        rank = 2
         self.rank = rank
         self.filters = filters
         self.kernel_size = conv_utils.normalize_tuple(kernel_size, rank,
@@ -245,10 +234,13 @@ class SparseConv2D(Layer):
                                       regularizer=self.kernel_regularizer,
                                       constraint=self.kernel_constraint)
 
+        # keep track of TF Variable (weights)
+        self.original_kernel = self.kernel
+
         # Set the correct initial values here
         # use K.set_value(x, value)
         total_number_of_matrix_entries = np.prod(kernel_shape)
-        number_of_active_synapses = int(self.connectivity_level *
+        number_of_active_synapses = int((self.connectivity_level or 1) *
                                         total_number_of_matrix_entries)
         _pre_mask = np.zeros(total_number_of_matrix_entries, int)
         _pre_mask[:number_of_active_synapses] = 1

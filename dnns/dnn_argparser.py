@@ -24,15 +24,17 @@ parser.add_argument('--sparse_layers',
                     help='Use sparse layers',
                     action="store_true")
 
-
 parser.add_argument('--disable_rewiring',
                     help='For testing the accuracy one could '
                          'get with no rewiring',
                     action="store_true")
 
-
 parser.add_argument('--data_augmentation',
                     help='enable data augmentation',
+                    action="store_true")
+
+parser.add_argument('--soft_rewiring',
+                    help='rewiring without a target number of synapses',
                     action="store_true")
 
 parser.add_argument('--tensorboard',
@@ -69,7 +71,5 @@ parser.add_argument('--result_dir', type=str,
                     help='directory inp which to load and '
                          'store network architectures',
                     default=DEFAULT_RESULT_DIR)
-
-
 
 args = parser.parse_args()

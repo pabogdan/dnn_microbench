@@ -108,7 +108,8 @@ def generate_cifar_tf_tutorial_model(activation='relu', batch_size=128):
     return model
 
 
-def generate_sparse_cifar_tf_tutorial_model(activation='relu', batch_size=128):
+def generate_sparse_cifar_tf_tutorial_model(activation='relu', batch_size=128,
+                                            builtin_sparsity=None):
     '''
     Model is defined in  https://www.tensorflow.org/tutorials/images/deep_cnn
     and
@@ -131,8 +132,9 @@ def generate_sparse_cifar_tf_tutorial_model(activation='relu', batch_size=128):
     # input_shape = (1, img_rows * img_cols)
     reg_coeff = 1e-5
 
-    p_0 = .05  # global connectivity level
-    builtin_sparsity = [8 * p_0, .8 * p_0, 8 * p_0, 1]
+
+    if builtin_sparsity is None:
+        builtin_sparsity = [None] * 4
 
     # https://github.com/tensorflow/models/blob/master/tutorials/image/cifar10/cifar10.py#L47
     # batch_size = 128

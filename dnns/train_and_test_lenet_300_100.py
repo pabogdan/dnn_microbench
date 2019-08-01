@@ -79,11 +79,19 @@ else:
 
 loss = keras.losses.categorical_crossentropy
 
+builtin_sparsity=[.01, .03, .3]
+
 if not args.sparse_layers:
     model = generate_lenet_300_100_model(
         activation=args.activation,
         categorical_output=is_output_categorical)
+elif args.sparse_layers and not args.soft_rewiring:
+    model = generate_sparse_lenet_300_100_model(
+        activation=args.activation,
+        categorical_output=is_output_categorical,
+        builtin_sparsity=builtin_sparsity)
 else:
+    print("Soft rewiring enabled", args.soft_rewiring)
     model = generate_sparse_lenet_300_100_model(
         activation=args.activation,
         categorical_output=is_output_categorical)
@@ -91,8 +99,8 @@ model.summary()
 
 # disable rewiring with sparse layers to see the performance of the layer
     # when 90% of connections are disabled and static
-deep_r = RewiringCallback(connectivity_proportion=connectivity_proportion,
-                          fixed_conn=args.disable_rewiring)
+deep_r = RewiringCallback(fixed_conn=args.disable_rewiring,
+                          soft_limit=args.soft_rewiring)
 model.compile(
     optimizer=optimizer,
     loss=loss,
@@ -114,8 +122,17 @@ else:
     output_filename = "results_for_" + model_name
 activation_name = "relu"
 loss_name = "crossent"
+if args.sparse_layers:
+    if args.soft_rewiring:
+        sparse_name = "sparse_soft"
+    else:
+        sparse_name = "sparse_hard"
+else:
+    sparse_name = "dense"
+
 output_filename += "_" + activation_name
 output_filename += "_" + loss_name
+output_filename += "_" + sparse_name
 output_filename += "_" + optimizer_name + suffix
 output_filename += ".csv"
 
@@ -157,6 +174,10 @@ score = model.evaluate(x_test, y_test, verbose=1, batch_size=batch)
 print('Test Loss:', score[0])
 print('Test Accuracy:', score[1])
 
+end_time = plt.datetime.datetime.now()
+total_time = end_time - start_time
+print("Total time elapsed -- " + str(total_time))
+
 model_path = os.path.join(
     args.model_dir,
     "trained_model_of_" + model_name + "_" + activation_name +
@@ -167,6 +188,3 @@ model.save(model_path)
 
 print("Results (csv) saved at", csv_path)
 print("Model saved at", model_path)
-end_time = plt.datetime.datetime.now()
-total_time = end_time - start_time
-print("Total time elapsed -- " + str(total_time))

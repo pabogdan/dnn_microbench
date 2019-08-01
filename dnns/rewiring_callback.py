@@ -7,13 +7,17 @@ from keras import backend as K
 
 class RewiringCallback(Callback):
 
-    def __init__(self, connectivity_proportion=None, soft_limit=False, fixed_conn=False):
+    def __init__(self, connectivity_proportion=None,
+                 soft_limit=False,
+                 fixed_conn=False,
+                 noise_coeff=10 ** (-6)):
         super(RewiringCallback, self).__init__()
         self.connectivity_proportion = connectivity_proportion
         self.soft_limit = soft_limit
         self.fixed_conn = fixed_conn
         self._data = {}
         self._batch_rewires = {}
+        self.noise_coeff = noise_coeff
 
     @staticmethod
     def get_kernels_and_masks(model):
@@ -46,25 +50,23 @@ class RewiringCallback(Callback):
             RewiringCallback.get_kernels_and_masks(self.model)
 
         for k, m, l, i in zip(self.post_kernels, self.post_masks, self.layers,
-                           np.arange(len(self.layers))):
+                              np.arange(len(self.layers))):
             # If you invert the mask, are all those entries in kernel == 0?
             assert np.all(k[~m.astype(bool)] == 0)
-            # TODO add aditional checks here,
-            # check that pre and post masks are identical
+            # if not self.soft_limit:
 
-            # check that the connectivity is at the correct amount
+            # check that the connectivity is at the correct level
             assumed_prop = np.sum(m) / float(m.size)
             if self.connectivity_proportion:
                 conn_prop = self.connectivity_proportion[i]
             else:
                 conn_prop = l.connectivity_level
-            assert (np.isclose(assumed_prop, conn_prop, 0.0001)), \
-                "{} vs. {}".format(assumed_prop, conn_prop)
-
-
-
+            if conn_prop:
+                assert (np.isclose(assumed_prop, conn_prop, 0.0001)), \
+                    "{} vs. {}".format(assumed_prop, conn_prop)
 
         for pre_m, post_m in zip(self.pre_masks, self.post_masks):
+            # Check that the mask has not changed between batch begin and end
             assert np.all(pre_m == post_m)
 
         if self.fixed_conn:
@@ -79,17 +81,9 @@ class RewiringCallback(Callback):
                 self.layers):
             pre_sign = np.sign(pre_k)
             post_sign = np.sign(post_k)
-            # compute which entries have change sign
-            # can't use XOR here
-            # https://stackoverflow.com/questions/3843017/efficiently-detect-sign-changes-in-python/21171725
+
             # retrieve indices of synapses which require rewiring
             need_rewiring = np.where(pre_sign - post_sign)
-
-            # set old and new weights (kernel values) to 0
-            # K.set_value()
-            # new_k = post_k
-            # new_k[need_rewiring] = 0
-            # K.set_value(l.kernel, new_k)
 
             # update the mask by selecting other synapses to be active
             number_needing_rewiring = need_rewiring[0].size
@@ -101,39 +95,36 @@ class RewiringCallback(Callback):
                 continue
 
             post_m[need_rewiring] = 0
-            rewiring_candidates = np.asarray(np.where(post_m == 0))
-            choices = np.random.choice(
-                np.arange(rewiring_candidates[0].size),
-                number_needing_rewiring,
-                replace=False)
-            chosen_partners = tuple(rewiring_candidates[:, choices])
+            if not self.soft_limit:
+                # HARD REWIRING
+                rewiring_candidates = np.asarray(np.where(post_m == 0))
+                choices = np.random.choice(
+                    np.arange(rewiring_candidates[0].size),
+                    number_needing_rewiring,
+                    replace=False)
+                chosen_partners = tuple(rewiring_candidates[:, choices])
+            else:
+                # SOFT REWIRING
+                rewiring_candidates = np.where(post_m == 0)
+                noise = np.random.normal(scale=self.noise_coeff,
+                                         size=post_k.shape)
+                post_post_k = post_k + noise
+                post_post_sign = np.sign(post_post_k)
+                sign_diff = post_post_sign - post_sign
+                # Disregard active connections, only focus on dormant ones
+                rew_candidates_mask = np.zeros(post_k.shape).astype(bool)
+                rew_candidates_mask[rewiring_candidates] = True
+                sign_diff[np.invert(rew_candidates_mask)] = 0
+                chosen_partners = np.where(sign_diff)
 
             new_m = post_m
             new_m[chosen_partners] = 1
             # enable the new connections
             K.set_value(l.mask, new_m)
+            # update original kernel
+            post_k = post_k * new_m
+            K.set_value(l.original_kernel, post_k)
 
-        # old_sign = []
-        # for row, ws in enumerate(self.weights_before_learning):
-        #     old_sign.append(np.sign(ws))
-        # new_sign = []
-        # for row, ws in enumerate(new_weights):
-        #     new_sign.append(np.sign(ws))
-        # old_sign = np.asarray(old_sign)
-        # new_sign = np.asarray(new_sign)
-        # sign_changed = []
-        # for old, new in zip(old_sign, new_sign):
-        #     sign_changed.append(np.logical_xor(old, new))
-
-        # for layer in self.model.layers:
-        #     new_k = K.get_value(layer.kernel) * K.get_value(layer.mask)
-        #     K.set_value(layer.kernel, new_k)
-
-        # Operations can be done using
-        # K.get_value(x):
-        # and K.set_value(x, value)
-
-        # reporting stuff
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
@@ -151,7 +142,6 @@ class RewiringCallback(Callback):
                 self._data['proportion_connections_{}'.format(l.name)]))
         logs.update(dict(logs.items() | self._data.items()))
         return logs
-
 
     def stats(self):
         return {
