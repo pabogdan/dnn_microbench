@@ -78,15 +78,29 @@ loss = keras.losses.categorical_crossentropy
 p_0 = .05  # global connectivity level
 builtin_sparsity = [8 * p_0, .8 * p_0, 8 * p_0, 1]
 alphas = [0, 10 ** -7, 10 ** -6, 10 ** -9, 0]
+final_conns = np.asarray(builtin_sparsity)
+conn_decay_values = None
+if args.conn_decay:
+    conn_decay_values = (np.log(1. / final_conns)/epochs).tolist()
+    builtin_sparsity = np.ones(len(conn_decay_values)).tolist()
+
 
 if not args.sparse_layers:
     model = generate_cifar_tf_tutorial_model(
         activation=args.activation, batch_size=batch)
 elif args.sparse_layers and not args.soft_rewiring:
-    model = generate_sparse_cifar_tf_tutorial_model(
-        activation=args.activation, batch_size=batch,
-        builtin_sparsity=builtin_sparsity,
-        reg_coeffs=alphas)
+    if args.conn_decay:
+        print("Connectivity decay rewiring enabled", conn_decay_values)
+        model = generate_sparse_cifar_tf_tutorial_model(
+            activation=args.activation, batch_size=batch,
+            builtin_sparsity=builtin_sparsity,
+            reg_coeffs=alphas,
+            conn_decay=conn_decay_values)
+    else:
+        model = generate_sparse_cifar_tf_tutorial_model(
+            activation=args.activation, batch_size=batch,
+            builtin_sparsity=builtin_sparsity,
+            reg_coeffs=alphas)
 else:
     print("Soft rewiring enabled", args.soft_rewiring)
     model = generate_sparse_cifar_tf_tutorial_model(
@@ -97,7 +111,8 @@ model.summary()
 # disable rewiring with sparse layers to see the performance of the layer
 # when 90% of connections are disabled and static
 deep_r = RewiringCallback(fixed_conn=args.disable_rewiring,
-                          soft_limit=args.soft_rewiring)
+                          soft_limit=args.soft_rewiring,
+                          asserts_on=args.asserts_on)
 model.compile(
     optimizer=optimizer,
     loss=loss,

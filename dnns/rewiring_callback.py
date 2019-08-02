@@ -60,11 +60,9 @@ class RewiringCallback(Callback):
                 # assert np.all(x[~m.astype(bool)] == 0) or x[~m.astype(bool)].size == 0
                 # check that the connectivity is at the correct level
                 assumed_prop = np.sum(m) / float(m.size)
-                if self.connectivity_proportion:
-                    conn_prop = self.connectivity_proportion[i]
-                else:
-                    conn_prop = l.connectivity_level
-                if conn_prop:
+
+                conn_prop = l.connectivity_level
+                if conn_prop and not l.connectivity_decay:
                     assert (np.isclose(assumed_prop, conn_prop, 0.0001)), \
                         "{} vs. {}".format(assumed_prop, conn_prop)
 
@@ -133,16 +131,33 @@ class RewiringCallback(Callback):
         logs = logs or {}
         print("\nEpoch {:3} results:".format(epoch))
         for k, m, l in zip(self.post_kernels, self.post_masks, self.layers):
-            self._data['no_connections_{}'.format(l.name)] = np.sum(m)
+            # report
+            curr_no_active_connections = np.count_nonzero(m)
+            self._data['no_connections_{}'.format(l.name)] = curr_no_active_connections
             self._data['no_rewires_for_layer_{}'.format(l.name)] = \
                 self._batch_rewires["rewirings_for_layer_{}".format(l.name)]
-            self._data['proportion_connections_{}'.format(l.name)] = np.sum(m) / float(m.size)
+            self._data['proportion_connections_{}'.format(l.name)] = l.connectivity_level
             print("Layer {:10} has {:8} connections, corresponding to "
                   "{:>5.1%} of "
                   "the total connectivity".format(
                 l.name,
                 self._data['no_connections_{}'.format(l.name)],
                 self._data['proportion_connections_{}'.format(l.name)]))
+            # decay connectivity level
+            if hasattr(l, "connectivity_decay") and l.connectivity_decay:
+                l.connectivity_level -= l.connectivity_level * l.connectivity_decay
+                new_number_of_active_conns = l.get_number_of_active_connections()
+                if new_number_of_active_conns != curr_no_active_connections:
+                    no_diff = curr_no_active_connections - new_number_of_active_conns
+                    rewiring_candidates = np.asarray(np.where(m == 1))
+                    choices = np.random.choice(
+                        np.arange(rewiring_candidates[0].size),
+                        no_diff,
+                        replace=False)
+                    chosen_partners = tuple(rewiring_candidates[:, choices])
+                    m[chosen_partners] = 0
+                    K.set_value(l.mask, m)
+
         logs.update(dict(logs.items() | self._data.items()))
         return logs
 

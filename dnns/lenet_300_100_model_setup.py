@@ -54,7 +54,8 @@ def generate_lenet_300_100_model(activation='relu', categorical_output=True):
 
 def generate_sparse_lenet_300_100_model(activation='relu',
                                         categorical_output=True,
-                                        builtin_sparsity=None):
+                                        builtin_sparsity=None,
+                                        conn_decay=None):
     '''
     Model is defined in Liu et al 2016
     Noisy Softplus : A Biology Inspired Activation Function
@@ -70,6 +71,9 @@ def generate_sparse_lenet_300_100_model(activation='relu',
     if builtin_sparsity is None:
         builtin_sparsity = [None] * 3
 
+    if conn_decay is None:
+        conn_decay = [None] * 3
+
     # deal with string 'nsp'
     if activation in ['nsp', 'noisysoftplus', 'noisy_softplus']:
         activation = NoisySoftplus()
@@ -79,32 +83,32 @@ def generate_sparse_lenet_300_100_model(activation='relu',
     model.add(Sparse(units=300,
                      # consume the first entry in builtin_sparsity
                      connectivity_level=builtin_sparsity.pop(0) or None,
+                     connectivity_decay=conn_decay.pop(0) or None,
                      input_shape=input_shape,
                      # use_bias=False,
                      activation=activation,
                      batch_size=10,
-                     kernel_regularizer=keras.regularizers.l1(reg_coeff)))
+                     kernel_regularizer=keras.regularizers.l1(reg_coeff))
+              )
 
     # Second layer (FC 100)
     model.add(Sparse(units=100,
                      # consume the 2nd entry in builtin_sparsity
                      connectivity_level=builtin_sparsity.pop(0) or None,
+                     connectivity_decay=conn_decay.pop(0) or None,
                      activation=activation,
                      kernel_regularizer=keras.regularizers.l1(reg_coeff)))
 
     # Fully-connected (FC) layer
     model.add(Flatten())
-    if categorical_output:
-        model.add(Sparse(units=10,
-                         # consume the last entry in builtin_sparsity
-                         connectivity_level=builtin_sparsity.pop(0) or None,
-                         activation='softmax'))
-    else:
-        model.add(Sparse(units=1,
-                         # consume the last entry in builtin_sparsity
-                         connectivity_level=builtin_sparsity.pop(0) or None,
-                         ))
+    model.add(Sparse(units=10,
+                     # consume the last entry in builtin_sparsity
+                     connectivity_level=builtin_sparsity.pop(0) or None,
+                     connectivity_decay=conn_decay.pop(0) or None,
+                     activation='softmax'))
+
     assert len(builtin_sparsity) == 0
+    assert len(conn_decay) == 0
     # Return the model
     return model
 

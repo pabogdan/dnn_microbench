@@ -33,6 +33,15 @@ parser.add_argument('--data_augmentation',
                     help='enable data augmentation',
                     action="store_true")
 
+parser.add_argument('--conn_decay',
+                    help='decay the target number of connections',
+                    action="store_true")
+
+
+parser.add_argument('--asserts_on',
+                    help='turn on all asserts',
+                    action="store_true")
+
 parser.add_argument('--soft_rewiring',
                     help='rewiring without a target number of synapses',
                     action="store_true")

@@ -9,6 +9,7 @@ from keras.utils import conv_utils
 class Sparse(Layer):
 
     def __init__(self, units, connectivity_level=None,
+                 connectivity_decay=None,
                  activation=None,
                  use_bias=True,
                  kernel_initializer='glorot_uniform',
@@ -33,13 +34,16 @@ class Sparse(Layer):
         self.input_spec = InputSpec(min_ndim=2)
         self.supports_masking = True
         self.connectivity_level = connectivity_level
+        self.connectivity_decay = connectivity_decay
 
     def build(self, input_shape):
         # Create a trainable weight variable for this layer.
         assert len(input_shape) >= 2
         input_dim = input_shape[-1]
+
+        self.kernel_shape = (input_dim, self.units)
         self.kernel = self.add_weight(name='kernel',
-                                      shape=(input_dim, self.units),
+                                      shape=self.kernel_shape,
                                       initializer=self.kernel_initializer,
                                       trainable=True,
                                       regularizer=self.kernel_regularizer,
@@ -56,9 +60,9 @@ class Sparse(Layer):
 
         # Set the correct initial values here
         # use K.set_value(x, value)
-        total_number_of_matrix_entries = input_dim * self.units
-        number_of_active_synapses = int((self.connectivity_level or 1) *
-                                        total_number_of_matrix_entries)
+        total_number_of_matrix_entries = np.prod(self.kernel_shape)
+        number_of_active_synapses = \
+            self.get_number_of_active_connections()
         # https://stackoverflow.com/questions/47941079/can-i-make-random-mask-with-numpy?rq=1
         _pre_mask = np.zeros(total_number_of_matrix_entries, int)
         _pre_mask[:number_of_active_synapses] = 1
@@ -81,6 +85,11 @@ class Sparse(Layer):
 
     def add_update(self, updates, inputs=None):
         super(Sparse, self).add_update(updates, inputs)
+
+    def get_number_of_active_connections(self):
+        total_number_of_matrix_entries = np.prod(self.kernel_shape)
+        return int((self.connectivity_level or 1) *
+                   total_number_of_matrix_entries)
 
     def call(self, inputs, **kwargs):
         output = K.dot(inputs, self.kernel)
@@ -111,7 +120,8 @@ class Sparse(Layer):
             'activity_regularizer': regularizers.serialize(self.activity_regularizer),
             'kernel_constraint': constraints.serialize(self.kernel_constraint),
             'bias_constraint': constraints.serialize(self.bias_constraint),
-            'connectivity_level': self.connectivity_level
+            'connectivity_level': self.connectivity_level,
+            'connectivity_decay': self.connectivity_decay,
         }
 
         base_config = super(Sparse, self).get_config()
@@ -180,6 +190,7 @@ class SparseConv2D(Layer):
                  filters,
                  kernel_size,
                  connectivity_level=None,
+                 connectivity_decay=None,
                  rank=2,
                  strides=1,
                  padding='valid',
@@ -201,6 +212,7 @@ class SparseConv2D(Layer):
         self.kernel_size = conv_utils.normalize_tuple(kernel_size, rank,
                                                       'kernel_size')
         self.connectivity_level = connectivity_level
+        self.connectivity_decay = connectivity_decay
         self.strides = conv_utils.normalize_tuple(strides, rank, 'strides')
         self.padding = conv_utils.normalize_padding(padding)
         self.data_format = K.normalize_data_format(data_format)
@@ -226,9 +238,9 @@ class SparseConv2D(Layer):
             raise ValueError('The channel dimension of the inputs '
                              'should be defined. Found `None`.')
         input_dim = input_shape[channel_axis]
-        kernel_shape = self.kernel_size + (input_dim, self.filters)
+        self.kernel_shape = self.kernel_size + (input_dim, self.filters)
 
-        self.kernel = self.add_weight(shape=kernel_shape,
+        self.kernel = self.add_weight(shape=self.kernel_shape,
                                       initializer=self.kernel_initializer,
                                       name='kernel',
                                       regularizer=self.kernel_regularizer,
@@ -239,14 +251,14 @@ class SparseConv2D(Layer):
 
         # Set the correct initial values here
         # use K.set_value(x, value)
-        total_number_of_matrix_entries = np.prod(kernel_shape)
-        number_of_active_synapses = int((self.connectivity_level or 1) *
-                                        total_number_of_matrix_entries)
+        total_number_of_matrix_entries = np.prod(self.kernel_shape)
+        number_of_active_synapses = \
+            self.get_number_of_active_connections()
         _pre_mask = np.zeros(total_number_of_matrix_entries, int)
         _pre_mask[:number_of_active_synapses] = 1
 
         np.random.shuffle(_pre_mask)
-        _pre_mask = _pre_mask.astype(bool).reshape(kernel_shape)
+        _pre_mask = _pre_mask.astype(bool).reshape(self.kernel_shape)
         # set this as the mask
         # K.set_value(self.mask, _pre_mask)
         self.mask = K.variable(_pre_mask, name="mask")
@@ -268,6 +280,11 @@ class SparseConv2D(Layer):
 
         # Be sure to call this at the end
         super(SparseConv2D, self).build(input_shape)
+
+    def get_number_of_active_connections(self):
+        total_number_of_matrix_entries = np.prod(self.kernel_shape)
+        return int((self.connectivity_level or 1) *
+                   total_number_of_matrix_entries)
 
     def call(self, inputs):
         if self.rank == 1:
@@ -350,7 +367,8 @@ class SparseConv2D(Layer):
                 regularizers.serialize(self.activity_regularizer),
             'kernel_constraint': constraints.serialize(self.kernel_constraint),
             'bias_constraint': constraints.serialize(self.bias_constraint),
-            'connectivity_level': self.connectivity_level
+            'connectivity_level': self.connectivity_level,
+            'connectivity_decay': self.connectivity_decay,
         }
         base_config = super(SparseConv2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

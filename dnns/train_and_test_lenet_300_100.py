@@ -81,16 +81,30 @@ else:
 loss = keras.losses.categorical_crossentropy
 
 builtin_sparsity = [.01, .03, .3]
+final_conns = np.asarray(builtin_sparsity)
+
+conn_decay_values = None
+if args.conn_decay:
+    conn_decay_values = (np.log(1. / final_conns)/epochs).tolist()
+    builtin_sparsity = np.ones(len(conn_decay_values)).tolist()
 
 if not args.sparse_layers:
     model = generate_lenet_300_100_model(
         activation=args.activation,
         categorical_output=is_output_categorical)
 elif args.sparse_layers and not args.soft_rewiring:
-    model = generate_sparse_lenet_300_100_model(
-        activation=args.activation,
-        categorical_output=is_output_categorical,
-        builtin_sparsity=builtin_sparsity)
+    if args.conn_decay:
+        print("Connectivity decay rewiring enabled", conn_decay_values)
+        model = generate_sparse_lenet_300_100_model(
+            activation=args.activation,
+            categorical_output=is_output_categorical,
+            builtin_sparsity=builtin_sparsity,
+            conn_decay=conn_decay_values)
+    else:
+        model = generate_sparse_lenet_300_100_model(
+            activation=args.activation,
+            categorical_output=is_output_categorical,
+            builtin_sparsity=builtin_sparsity)
 else:
     print("Soft rewiring enabled", args.soft_rewiring)
     model = generate_sparse_lenet_300_100_model(
@@ -102,7 +116,8 @@ model.summary()
 # when 90% of connections are disabled and static
 deep_r = RewiringCallback(fixed_conn=args.disable_rewiring,
                           soft_limit=args.soft_rewiring,
-                          noise_coeff=10 ** -5)
+                          noise_coeff=10 ** -5,
+                          asserts_on=args.asserts_on)
 model.compile(
     optimizer=optimizer,
     loss=loss,
@@ -128,7 +143,10 @@ if args.sparse_layers:
     if args.soft_rewiring:
         sparse_name = "sparse_soft"
     else:
-        sparse_name = "sparse_hard"
+        if args.conn_decay:
+            sparse_name = "sparse_decay"
+        else:
+            sparse_name = "sparse_hard"
 else:
     sparse_name = "dense"
 
@@ -162,7 +180,8 @@ if args.tensorboard:
     callback_list.append(tb)
 
 callback_list.append(csv_logger)
-model.fit(x_train, y_train,
+# model.fit(x_train, y_train,
+model.fit(x_train[:100], y_train[:100],
           batch_size=batch,
           epochs=epochs,
           verbose=1,
