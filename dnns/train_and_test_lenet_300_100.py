@@ -180,8 +180,8 @@ if args.tensorboard:
     callback_list.append(tb)
 
 callback_list.append(csv_logger)
-# model.fit(x_train, y_train,
-model.fit(x_train[:100], y_train[:100],
+model.fit(x_train, y_train,
+# model.fit(x_train[:100], y_train[:100],
           batch_size=batch,
           epochs=epochs,
           verbose=1,
