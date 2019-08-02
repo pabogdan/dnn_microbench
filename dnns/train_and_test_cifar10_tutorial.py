@@ -77,17 +77,21 @@ loss = keras.losses.categorical_crossentropy
 
 p_0 = .05  # global connectivity level
 builtin_sparsity = [8 * p_0, .8 * p_0, 8 * p_0, 1]
+alphas = [0, 10 ** -7, 10 ** -6, 10 ** -9, 0]
+
 if not args.sparse_layers:
     model = generate_cifar_tf_tutorial_model(
         activation=args.activation, batch_size=batch)
 elif args.sparse_layers and not args.soft_rewiring:
     model = generate_sparse_cifar_tf_tutorial_model(
         activation=args.activation, batch_size=batch,
-        builtin_sparsity=builtin_sparsity)
+        builtin_sparsity=builtin_sparsity,
+        reg_coeffs=alphas)
 else:
     print("Soft rewiring enabled", args.soft_rewiring)
     model = generate_sparse_cifar_tf_tutorial_model(
-        activation=args.activation, batch_size=batch)
+        activation=args.activation, batch_size=batch,
+        reg_coeffs=alphas)
 model.summary()
 
 # disable rewiring with sparse layers to see the performance of the layer
@@ -168,7 +172,7 @@ else:
     print('Using real-time data augmentation.')
     # This will do preprocessing and realtime data augmentation:
     datagen = ImageDataGenerator(
-        featurewise_center=True,  # set input mean to 0 over the dataset
+        featurewise_center=False,  # set input mean to 0 over the dataset
         samplewise_center=False,  # set each sample mean to 0
         featurewise_std_normalization=False,  # divide inputs by std of the dataset
         samplewise_std_normalization=False,  # divide each input by its std
@@ -179,8 +183,8 @@ else:
         width_shift_range=0.1,
         # randomly shift images vertically (fraction of total height)
         height_shift_range=0.1,
-        shear_range=0.1,  # set range for random shear
-        zoom_range=0.1,  # set range for random zoom
+        shear_range=0.,  # set range for random shear
+        zoom_range=0.,  # set range for random zoom
         channel_shift_range=0.,  # set range for random channel shifts
         # set mode for filling points outside the input boundaries
         fill_mode='nearest',

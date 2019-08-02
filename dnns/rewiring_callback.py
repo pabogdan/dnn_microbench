@@ -10,7 +10,8 @@ class RewiringCallback(Callback):
     def __init__(self, connectivity_proportion=None,
                  soft_limit=False,
                  fixed_conn=False,
-                 noise_coeff=10 ** (-6)):
+                 noise_coeff=10 ** -6,
+                 asserts_on=False):
         super(RewiringCallback, self).__init__()
         self.connectivity_proportion = connectivity_proportion
         self.soft_limit = soft_limit
@@ -18,6 +19,7 @@ class RewiringCallback(Callback):
         self._data = {}
         self._batch_rewires = {}
         self.noise_coeff = noise_coeff
+        self.asserts_on = asserts_on
 
     @staticmethod
     def get_kernels_and_masks(model):
@@ -49,25 +51,26 @@ class RewiringCallback(Callback):
         self.post_kernels, self.post_masks, self.layers = \
             RewiringCallback.get_kernels_and_masks(self.model)
 
-        for k, m, l, i in zip(self.post_kernels, self.post_masks, self.layers,
-                              np.arange(len(self.layers))):
-            # If you invert the mask, are all those entries in kernel == 0?
-            assert np.all(k[~m.astype(bool)] == 0)
-            # if not self.soft_limit:
+        if self.asserts_on:
+            for k, m, l, i in zip(self.post_kernels, self.post_masks, self.layers,
+                                  np.arange(len(self.layers))):
+                # If you invert the mask, are all those entries in kernel == 0?
+                assert np.all(k[~m.astype(bool)] == 0)
+                # x = K.get_value(l.original_kernel)
+                # assert np.all(x[~m.astype(bool)] == 0) or x[~m.astype(bool)].size == 0
+                # check that the connectivity is at the correct level
+                assumed_prop = np.sum(m) / float(m.size)
+                if self.connectivity_proportion:
+                    conn_prop = self.connectivity_proportion[i]
+                else:
+                    conn_prop = l.connectivity_level
+                if conn_prop:
+                    assert (np.isclose(assumed_prop, conn_prop, 0.0001)), \
+                        "{} vs. {}".format(assumed_prop, conn_prop)
 
-            # check that the connectivity is at the correct level
-            assumed_prop = np.sum(m) / float(m.size)
-            if self.connectivity_proportion:
-                conn_prop = self.connectivity_proportion[i]
-            else:
-                conn_prop = l.connectivity_level
-            if conn_prop:
-                assert (np.isclose(assumed_prop, conn_prop, 0.0001)), \
-                    "{} vs. {}".format(assumed_prop, conn_prop)
-
-        for pre_m, post_m in zip(self.pre_masks, self.post_masks):
-            # Check that the mask has not changed between batch begin and end
-            assert np.all(pre_m == post_m)
+            for pre_m, post_m in zip(self.pre_masks, self.post_masks):
+                # Check that the mask has not changed between batch begin and end
+                assert np.all(pre_m == post_m)
 
         if self.fixed_conn:
             # ASSESSING THE PERFORMANCE OF THE NETWORK WHEN THE CONNECTIVITY

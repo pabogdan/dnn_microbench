@@ -17,13 +17,13 @@ import pylab as plt
 start_time = plt.datetime.datetime.now()
 # Get number of cores reserved by the batch system
 # (NSLOTS is automatically set, or use 4 otherwise)
-NUMCORES=int(os.getenv("NSLOTS", 4))
+NUMCORES = int(os.getenv("NSLOTS", 4))
 print("Using", NUMCORES, "core(s)")
 
 # Create TF session using correct number of cores
 sess = tf.Session(config=tf.ConfigProto(inter_op_parallelism_threads=NUMCORES,
-   intra_op_parallelism_threads=NUMCORES, allow_soft_placement=True,
-   device_count = {'CPU': NUMCORES}))
+                                        intra_op_parallelism_threads=NUMCORES, allow_soft_placement=True,
+                                        device_count={'CPU': NUMCORES}))
 
 # Set the Keras TF session
 K.set_session(sess)
@@ -68,6 +68,7 @@ elif args.optimizer.lower() in ["ada", "adadelta"]:
 elif args.optimizer.lower() in ["noisy_sgd", "ns"]:
     # custom optimizer to include noise and temperature
     from noisy_sgd import NoisySGD
+
     if not args.sparse_layers:
         optimizer = NoisySGD()
     else:
@@ -79,7 +80,7 @@ else:
 
 loss = keras.losses.categorical_crossentropy
 
-builtin_sparsity=[.01, .03, .3]
+builtin_sparsity = [.01, .03, .3]
 
 if not args.sparse_layers:
     model = generate_lenet_300_100_model(
@@ -98,9 +99,10 @@ else:
 model.summary()
 
 # disable rewiring with sparse layers to see the performance of the layer
-    # when 90% of connections are disabled and static
+# when 90% of connections are disabled and static
 deep_r = RewiringCallback(fixed_conn=args.disable_rewiring,
-                          soft_limit=args.soft_rewiring)
+                          soft_limit=args.soft_rewiring,
+                          noise_coeff=10 ** -5)
 model.compile(
     optimizer=optimizer,
     loss=loss,
@@ -141,7 +143,6 @@ csv_logger = keras.callbacks.CSVLogger(
     csv_path,
     separator=',',
     append=False)
-
 
 callback_list = []
 if args.sparse_layers:
