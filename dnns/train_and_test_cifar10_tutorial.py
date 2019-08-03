@@ -136,7 +136,10 @@ if args.sparse_layers:
     if args.soft_rewiring:
         sparse_name = "sparse_soft"
     else:
-        sparse_name = "sparse_hard"
+        if args.conn_decay:
+            sparse_name = "sparse_decay"
+        else:
+            sparse_name = "sparse_hard"
 else:
     sparse_name = "dense"
 activation_name = "relu"
