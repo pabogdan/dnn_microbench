@@ -133,10 +133,11 @@ class RewiringCallback(Callback):
         for k, m, l in zip(self.post_kernels, self.post_masks, self.layers):
             # report
             curr_no_active_connections = np.count_nonzero(m)
+            conn_level = l.connectivity_level or curr_no_active_connections/float(m.size)
             self._data['no_connections_{}'.format(l.name)] = curr_no_active_connections
             self._data['no_rewires_for_layer_{}'.format(l.name)] = \
                 self._batch_rewires["rewirings_for_layer_{}".format(l.name)]
-            self._data['proportion_connections_{}'.format(l.name)] = l.connectivity_level
+            self._data['proportion_connections_{}'.format(l.name)] = conn_level
             print("Layer {:10} has {:8} connections, corresponding to "
                   "{:>5.1%} of "
                   "the total connectivity".format(
