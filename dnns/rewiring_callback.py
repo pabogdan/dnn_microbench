@@ -123,8 +123,8 @@ class RewiringCallback(Callback):
             # enable the new connections
             K.set_value(l.mask, new_m)
             # update original kernel
-            post_k = post_k * new_m
-            K.set_value(l.original_kernel, post_k)
+            # post_k = post_k * new_m
+            # K.set_value(l.original_kernel, post_k)
 
 
     def on_epoch_end(self, epoch, logs=None):

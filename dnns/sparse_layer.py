@@ -79,6 +79,8 @@ class Sparse(Layer):
         # apply mask
         self.kernel = self.kernel * self.mask
 
+        self.add_update(updates=K.update(self.original_kernel, self.kernel))
+
         self.input_spec = InputSpec(min_ndim=2, axes={-1: input_dim})
         # Be sure to call this at the end
         super(Sparse, self).build(input_shape)
@@ -280,6 +282,9 @@ class SparseConv2D(Layer):
 
         # Be sure to call this at the end
         super(SparseConv2D, self).build(input_shape)
+
+    def add_update(self, updates, inputs=None):
+        super(Sparse, self).add_update(updates, inputs)
 
     def get_number_of_active_connections(self):
         total_number_of_matrix_entries = np.prod(self.kernel_shape)
