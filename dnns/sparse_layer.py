@@ -49,6 +49,7 @@ class Sparse(Layer):
                                       regularizer=self.kernel_regularizer,
                                       constraint=self.kernel_constraint)
 
+
         if self.use_bias:
             self.bias = self.add_weight(shape=(self.units,),
                                         initializer=self.bias_initializer,
@@ -58,6 +59,10 @@ class Sparse(Layer):
         else:
             self.bias = None
 
+
+
+        # self.sign = K.variable(np.sign(K.get_value(self.kernel)),
+        #                        name='sign')
         # Set the correct initial values here
         # use K.set_value(x, value)
         total_number_of_matrix_entries = np.prod(self.kernel_shape)
@@ -79,8 +84,11 @@ class Sparse(Layer):
         # apply mask
         self.kernel = self.kernel * self.mask
 
-        self.add_update(updates=K.update(self.original_kernel, self.kernel))
+        if self.connectivity_level:
+            self.add_update(updates=K.update(self.original_kernel, self.kernel))
 
+
+        # self.add_update(updates=K.update(self.sign, K.sign(self.original_kernel)))
         self.input_spec = InputSpec(min_ndim=2, axes={-1: input_dim})
         # Be sure to call this at the end
         super(Sparse, self).build(input_shape)
@@ -267,6 +275,8 @@ class _SparseConv(Layer):
 
         # apply mask
         self.kernel = self.kernel * self.mask
+        if self.connectivity_level:
+            self.add_update(updates=K.update(self.original_kernel, self.kernel))
 
         if self.use_bias:
             self.bias = self.add_weight(shape=(self.filters,),
@@ -594,7 +604,7 @@ class SparseDepthwiseConv2D(SparseConv2D):
 
     def build(self, input_shape):
         if len(input_shape) < 4:
-            raise ValueError('Inputs to `DepthwiseConv2D` should have rank 4. '
+            raise ValueError('Inputs to `SparseDepthwiseConv2D` should have rank 4. '
                              'Received input shape:', str(input_shape))
         if self.data_format == 'channels_first':
             channel_axis = 1
@@ -602,7 +612,7 @@ class SparseDepthwiseConv2D(SparseConv2D):
             channel_axis = 3
         if input_shape[channel_axis] is None:
             raise ValueError('The channel dimension of the inputs to '
-                             '`DepthwiseConv2D` '
+                             '`SparseDepthwiseConv2D` '
                              'should be defined. Found `None`.')
         input_dim = int(input_shape[channel_axis])
         depthwise_kernel_shape = (self.kernel_size[0],
@@ -671,7 +681,7 @@ class SparseDepthwiseConv2D(SparseConv2D):
             return (input_shape[0], rows, cols, out_filters)
 
     def get_config(self):
-        config = super(DepthwiseConv2D, self).get_config()
+        config = super(SparseDepthwiseConv2D, self).get_config()
         config.pop('filters')
         config.pop('kernel_initializer')
         config.pop('kernel_regularizer')

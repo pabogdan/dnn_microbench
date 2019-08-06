@@ -109,9 +109,10 @@ class RewiringCallback(Callback):
                 rewiring_candidates = np.where(post_m == 0)
                 noise = np.random.normal(scale=self.noise_coeff,
                                          size=post_k.shape)
-                post_post_k = post_k + noise
+                # Apply noise only to dormant connections
+                post_post_k = pre_k + (noise * post_m)
                 post_post_sign = np.sign(post_post_k)
-                sign_diff = post_post_sign - post_sign
+                sign_diff = post_post_sign - pre_sign
                 # Disregard active connections, only focus on dormant ones
                 rew_candidates_mask = np.zeros(post_k.shape).astype(bool)
                 rew_candidates_mask[rewiring_candidates] = True
@@ -125,15 +126,24 @@ class RewiringCallback(Callback):
             # update original kernel
             # post_k = post_k * new_m
             # K.set_value(l.original_kernel, post_k)
-
+            if self.soft_limit:
+                # masked pre inactive (dormant) connections
+                masked_pres = post_post_k * (~rew_candidates_mask)
+                # add to masked post actives
+                masked_posts = post_k * (rew_candidates_mask)
+                K.set_value(l.original_kernel, masked_pres + masked_posts)
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
         print("\nEpoch {:3} results:".format(epoch))
+        total_num_of_conns = 0
+        total_num_active_conns = 0
         for k, m, l in zip(self.post_kernels, self.post_masks, self.layers):
             # report
+            total_num_of_conns += m.size
             curr_no_active_connections = np.count_nonzero(m)
-            conn_level = l.connectivity_level or curr_no_active_connections/float(m.size)
+            total_num_active_conns += curr_no_active_connections
+            conn_level = l.connectivity_level or curr_no_active_connections / float(m.size)
             self._data['no_connections_{}'.format(l.name)] = curr_no_active_connections
             self._data['no_rewires_for_layer_{}'.format(l.name)] = \
                 self._batch_rewires["rewirings_for_layer_{}".format(l.name)]
@@ -158,7 +168,12 @@ class RewiringCallback(Callback):
                     chosen_partners = tuple(rewiring_candidates[:, choices])
                     m[chosen_partners] = 0
                     K.set_value(l.mask, m)
-
+        global_conn_lvl = total_num_active_conns/float(total_num_of_conns)
+        print("Total stats: {:8} active connections, corresponding to {:>5.1%} "
+              "of total connectivity".format(
+            total_num_active_conns,
+            global_conn_lvl))
+        self._data['global_connectivity_lvl'] = global_conn_lvl
         logs.update(dict(logs.items() | self._data.items()))
         return logs
 
