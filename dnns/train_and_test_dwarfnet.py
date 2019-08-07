@@ -13,9 +13,6 @@ from replace_dense_with_sparse import replace_dense_with_sparse
 from rewiring_callback import RewiringCallback
 # Import OS to deal with directories
 import os
-# network generation imports
-from cifar_tf_tutorial_model_setup import generate_cifar_tf_tutorial_model, \
-    generate_sparse_cifar_tf_tutorial_model
 import tensorflow as tf
 from keras import backend as K
 import pylab as plt
@@ -44,6 +41,8 @@ if not os.path.isdir(args.model_dir) and not os.path.exists(args.model_dir):
 def relu6(x):
     return K.relu(x, max_value=6)
 
+relu6_activation = keras.layers.ReLU(max_value=6)
+
 
 dataset_info = load_and_preprocess_dataset(
     'cifar10')
@@ -69,18 +68,11 @@ if args.conn_decay:
     builtin_sparsity = np.ones(len(conn_decay_values)).tolist()
 
 model_path = os.path.join("05-mobilenet_dwarf_v1",
-                                    "mobilenet_dwarf_v1.h5")
+                                    "standard_dense_dwarf.h5")
 
-with open(os.path.join("05-mobilenet_dwarf_v1",
-                       "custom_objects.json"), "r") as read_file:
-    custom_obj = json.load(read_file)
-for k in custom_obj.keys():
-    custom_obj[k] = keras.layers.ReLU(**custom_obj[k])
-custom_obj['relu6'] = relu6
 
 if not args.sparse_layers:
-    model = load_model(model_path,
-                       custom_objects=custom_obj)
+    model = load_model(model_path)
 elif args.sparse_layers and not args.soft_rewiring:
     if args.conn_decay:
         print("Connectivity decay rewiring enabled", conn_decay_values)
@@ -89,17 +81,17 @@ elif args.sparse_layers and not args.soft_rewiring:
             activation=args.activation, batch_size=batch,
             builtin_sparsity=builtin_sparsity,
             reg_coeffs=alphas,
-            conn_decay=conn_decay_values, custom_object=custom_obj)
+            conn_decay=conn_decay_values)
     else:
         model = replace_dense_with_sparse(
             model_filename=model_path,
             activation=args.activation, batch_size=batch,
             builtin_sparsity=builtin_sparsity,
-            reg_coeffs=alphas, custom_object=custom_obj)
+            reg_coeffs=alphas)
 else:
     print("Soft rewiring enabled", args.soft_rewiring)
     model = replace_dense_with_sparse(
-        model_filename=args.model,
+        model_filename=model_path,
         activation=args.activation, batch_size=batch,
         reg_coeffs=alphas)
 model.summary()

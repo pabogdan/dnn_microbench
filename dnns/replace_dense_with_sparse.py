@@ -36,16 +36,6 @@ def replace_dense_with_sparse(
     model = load_model(model_filename,
                        custom_objects=custom_object)
     sparse_model = Sequential()
-    act_to_use = None
-    if activation != 'relu':
-        # Loop through layers and replace the ReLU activation with your
-        # flavour of choice
-        if activation == 'softplus':
-            act_to_use = keras.activations.softplus
-        elif activation in ['noisysoftplus', 'noisy_softplus']:
-            act_to_use = NoisySoftplus()
-        elif isinstance(activation, NoisySoftplus):
-            act_to_use = activation
 
     for i, layer in enumerate(model.layers):
         # get layer configuration
