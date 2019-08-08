@@ -130,6 +130,8 @@ class RewiringCallback(Callback):
             if self.soft_limit:
                 # masked pre inactive (dormant) connections
                 masked_pres = post_post_k * (~rew_candidates_mask)
+                # clip masked_pres so that they don't drift too far from 0
+                masked_pres = np.clip(masked_pres, -1.5, 1.5)
                 # add to masked post actives
                 masked_posts = post_k * (rew_candidates_mask)
                 K.set_value(l.original_kernel, masked_pres + masked_posts)
