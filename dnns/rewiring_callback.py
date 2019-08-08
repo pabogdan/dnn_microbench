@@ -28,7 +28,7 @@ class RewiringCallback(Callback):
         layers = []
         for layer in model.layers:
             if hasattr(layer, "mask"):
-                kernels.append(K.get_value(layer.kernel))
+                kernels.append(layer.get_weights()[0])
                 masks.append(K.get_value(layer.mask))
                 layers.append(layer)
         return np.asarray(kernels), np.asarray(masks), layers
@@ -55,7 +55,8 @@ class RewiringCallback(Callback):
             for k, m, l, i in zip(self.post_kernels, self.post_masks, self.layers,
                                   np.arange(len(self.layers))):
                 # If you invert the mask, are all those entries in kernel == 0?
-                assert np.all(k[~m.astype(bool)] == 0)
+                if l.connectivity_level:
+                    assert np.all(k[~m.astype(bool)] == 0)
                 # x = K.get_value(l.original_kernel)
                 # assert np.all(x[~m.astype(bool)] == 0) or x[~m.astype(bool)].size == 0
                 # check that the connectivity is at the correct level

@@ -619,7 +619,7 @@ class SparseDepthwiseConv2D(SparseConv2D):
                                   self.kernel_size[1],
                                   input_dim,
                                   self.depth_multiplier)
-
+        self.kernel_shape = depthwise_kernel_shape
         self.depthwise_kernel = self.add_weight(
             shape=depthwise_kernel_shape,
             initializer=self.depthwise_initializer,
@@ -635,6 +635,28 @@ class SparseDepthwiseConv2D(SparseConv2D):
                                         constraint=self.bias_constraint)
         else:
             self.bias = None
+
+        # keep track of TF Variable (weights)
+        self.original_kernel = self.depthwise_kernel
+
+        # Set the correct initial values here
+        # use K.set_value(x, value)
+        total_number_of_matrix_entries = np.prod(self.kernel_shape)
+        number_of_active_synapses = \
+            self.get_number_of_active_connections()
+        _pre_mask = np.zeros(total_number_of_matrix_entries, int)
+        _pre_mask[:number_of_active_synapses] = 1
+
+        np.random.shuffle(_pre_mask)
+        _pre_mask = _pre_mask.astype(bool).reshape(self.kernel_shape)
+        # set this as the mask
+        # K.set_value(self.mask, _pre_mask)
+        self.mask = K.variable(_pre_mask, name="mask")
+
+        # apply mask
+        self.depthwise_kernel = self.depthwise_kernel * self.mask
+        if self.connectivity_level:
+            self.add_update(updates=K.update(self.original_kernel, self.depthwise_kernel))
         # Set input spec.
         self.input_spec = InputSpec(ndim=4, axes={channel_axis: input_dim})
         self.built = True
