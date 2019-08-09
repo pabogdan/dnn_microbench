@@ -3,6 +3,7 @@ from keras.engine import InputSpec
 from keras.engine.topology import Layer
 import numpy as np
 import keras
+import tensorflow as tf
 from keras.utils import conv_utils
 
 
@@ -49,7 +50,6 @@ class Sparse(Layer):
                                       regularizer=self.kernel_regularizer,
                                       constraint=self.kernel_constraint)
 
-
         if self.use_bias:
             self.bias = self.add_weight(shape=(self.units,),
                                         initializer=self.bias_initializer,
@@ -58,8 +58,6 @@ class Sparse(Layer):
                                         constraint=self.bias_constraint)
         else:
             self.bias = None
-
-
 
         # self.sign = K.variable(np.sign(K.get_value(self.kernel)),
         #                        name='sign')
@@ -76,7 +74,11 @@ class Sparse(Layer):
         _pre_mask = _pre_mask.astype(bool).reshape((input_dim, self.units))
         # set this as the mask
         # K.set_value(self.mask, _pre_mask)
-        self.mask = K.variable(_pre_mask, name="mask")
+        # self.mask = K.variable(_pre_mask, name="mask")
+        self.mask = self.add_weight(shape=_pre_mask.shape,
+                                    initializer=initializers.constant(_pre_mask),
+                                    name='mask',
+                                    trainable=False)
 
         # keep track of TF Variable (weights)
         self.original_kernel = self.kernel
@@ -86,7 +88,6 @@ class Sparse(Layer):
 
         if self.connectivity_level:
             self.add_update(updates=K.update(self.original_kernel, self.kernel))
-
 
         # self.add_update(updates=K.update(self.sign, K.sign(self.original_kernel)))
         self.input_spec = InputSpec(min_ndim=2, axes={-1: input_dim})
@@ -271,7 +272,11 @@ class _SparseConv(Layer):
         _pre_mask = _pre_mask.astype(bool).reshape(self.kernel_shape)
         # set this as the mask
         # K.set_value(self.mask, _pre_mask)
-        self.mask = K.variable(_pre_mask, name="mask")
+        # self.mask = K.variable(_pre_mask, name="mask")
+        self.mask = self.add_weight(shape=_pre_mask.shape,
+                                    initializer=initializers.constant(_pre_mask),
+                                    name='mask',
+                                    trainable=False)
 
         # apply mask
         self.kernel = self.kernel * self.mask
@@ -651,15 +656,21 @@ class SparseDepthwiseConv2D(SparseConv2D):
         _pre_mask = _pre_mask.astype(bool).reshape(self.kernel_shape)
         # set this as the mask
         # K.set_value(self.mask, _pre_mask)
-        self.mask = K.variable(_pre_mask, name="mask")
+        # self.mask = K.variable(_pre_mask, name="mask")
+        self.mask = self.add_weight(shape=_pre_mask.shape,
+                                    initializer=initializers.constant(_pre_mask),
+                                    name='mask',
+                                    trainable=False)
 
         # apply mask
         self.depthwise_kernel = self.depthwise_kernel * self.mask
         if self.connectivity_level:
+            # if target-based rewiring enabled
             self.add_update(updates=K.update(self.original_kernel, self.depthwise_kernel))
+
         # Set input spec.
         self.input_spec = InputSpec(ndim=4, axes={channel_axis: input_dim})
-        self.built = True
+        super(_SparseConv, self).build(input_shape)
 
     def call(self, inputs, training=None):
         outputs = K.depthwise_conv2d(
