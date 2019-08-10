@@ -71,7 +71,7 @@ class Sparse(Layer):
         _pre_mask[:number_of_active_synapses] = 1
 
         np.random.shuffle(_pre_mask)
-        _pre_mask = _pre_mask.astype(bool).reshape((input_dim, self.units))
+        _pre_mask = _pre_mask.astype(bool).reshape((input_dim, self.units)).astype(float)
         # set this as the mask
         # K.set_value(self.mask, _pre_mask)
         # self.mask = K.variable(_pre_mask, name="mask")
@@ -269,7 +269,7 @@ class _SparseConv(Layer):
         _pre_mask[:number_of_active_synapses] = 1
 
         np.random.shuffle(_pre_mask)
-        _pre_mask = _pre_mask.astype(bool).reshape(self.kernel_shape)
+        _pre_mask = _pre_mask.astype(bool).reshape((input_dim, self.units)).astype(float)
         # set this as the mask
         # K.set_value(self.mask, _pre_mask)
         # self.mask = K.variable(_pre_mask, name="mask")
@@ -653,7 +653,7 @@ class SparseDepthwiseConv2D(SparseConv2D):
         _pre_mask[:number_of_active_synapses] = 1
 
         np.random.shuffle(_pre_mask)
-        _pre_mask = _pre_mask.astype(bool).reshape(self.kernel_shape)
+        _pre_mask = _pre_mask.astype(bool).reshape((input_dim, self.units)).astype(float)
         # set this as the mask
         # K.set_value(self.mask, _pre_mask)
         # self.mask = K.variable(_pre_mask, name="mask")
