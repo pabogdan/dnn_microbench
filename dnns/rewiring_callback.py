@@ -55,8 +55,8 @@ class RewiringCallback(Callback):
             for k, m, l, i in zip(self.post_kernels, self.post_masks, self.layers,
                                   np.arange(len(self.layers))):
                 # If you invert the mask, are all those entries in kernel == 0?
-                if l.connectivity_level:
-                    assert np.all(k[~m.astype(bool)] == 0)
+                # if l.connectivity_level:
+                #     assert np.all(k[~m.astype(bool)] == 0)
                 # x = K.get_value(l.original_kernel)
                 # assert np.all(x[~m.astype(bool)] == 0) or x[~m.astype(bool)].size == 0
                 # check that the connectivity is at the correct level
@@ -85,7 +85,9 @@ class RewiringCallback(Callback):
             post_sign = np.sign(post_k)
 
             # retrieve indices of synapses which require rewiring
-            need_rewiring = np.where(pre_sign - post_sign)
+            # save them in a variable and apply the mask (only rewire active conns)
+            masked_sign_diff = (pre_sign * post_sign)*post_m
+            need_rewiring = np.where(masked_sign_diff < 0)
 
             # update the mask by selecting other synapses to be active
             number_needing_rewiring = need_rewiring[0].size
@@ -113,12 +115,12 @@ class RewiringCallback(Callback):
                 # Apply noise only to dormant connections
                 post_post_k = pre_k + (noise * post_m)
                 post_post_sign = np.sign(post_post_k)
-                sign_diff = post_post_sign - pre_sign
+                sign_diff = post_post_sign * pre_sign
                 # Disregard active connections, only focus on dormant ones
                 rew_candidates_mask = np.zeros(post_k.shape).astype(bool)
                 rew_candidates_mask[rewiring_candidates] = True
                 sign_diff[np.invert(rew_candidates_mask)] = 0
-                chosen_partners = np.where(sign_diff)
+                chosen_partners = np.where(sign_diff < 0)
 
             new_m = post_m
             new_m[chosen_partners] = 1
