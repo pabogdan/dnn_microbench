@@ -41,8 +41,8 @@ if not os.path.isdir(args.model_dir) and not os.path.exists(args.model_dir):
 def relu6(x):
     return K.relu(x, max_value=6)
 
-relu6_activation = keras.layers.ReLU(max_value=6)
 
+relu6_activation = keras.layers.ReLU(max_value=6)
 
 dataset_info = load_and_preprocess_dataset(
     'cifar10')
@@ -68,30 +68,28 @@ if args.conn_decay:
     builtin_sparsity = np.ones(len(conn_decay_values)).tolist()
 
 model_path = os.path.join("05-mobilenet_dwarf_v1",
-                                    "standard_dense_dwarf.h5")
+                          "standard_dense_dwarf.h5")
 
-
-if not args.sparse_layers:
-    model = load_model(model_path)
-elif args.sparse_layers and not args.soft_rewiring:
+model = load_model(model_path)
+if args.sparse_layers and not args.soft_rewiring:
     if args.conn_decay:
         print("Connectivity decay rewiring enabled", conn_decay_values)
         model = replace_dense_with_sparse(
-            model_filename=model_path,
+            model,
             activation=args.activation, batch_size=batch,
             builtin_sparsity=builtin_sparsity,
             reg_coeffs=alphas,
             conn_decay=conn_decay_values)
     else:
         model = replace_dense_with_sparse(
-            model_filename=model_path,
+            model,
             activation=args.activation, batch_size=batch,
             builtin_sparsity=builtin_sparsity,
             reg_coeffs=alphas)
-else:
+elif args.sparse_layers and args.soft_rewiring:
     print("Soft rewiring enabled", args.soft_rewiring)
     model = replace_dense_with_sparse(
-        model_filename=model_path,
+        model,
         activation=args.activation, batch_size=batch,
         reg_coeffs=alphas)
 model.summary()
@@ -120,8 +118,6 @@ else:
     optimizer_name = args.optimizer
 
 loss = keras.losses.categorical_crossentropy
-
-
 
 # disable rewiring with sparse layers to see the performance of the layer
 # when 90% of connections are disabled and static
