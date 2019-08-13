@@ -36,7 +36,8 @@ def replace_dense_with_sparse(
         builtin_sparsity=None,
         reg_coeffs=None,
         conn_decay=None,
-        custom_object={}):
+        custom_object={},
+        cache=True):
     '''
     Model is defined in Howard et al (2017)
     MobileNets: Efficient Convolutional Neural Networks for Mobile Vision
@@ -45,6 +46,26 @@ def replace_dense_with_sparse(
     :rtype: keras.applications.mobilenet.MobileNet
     '''
     custom_object = custom_object or {}
+
+    _cache = "__pycache__"
+    if not os.path.isdir(_cache):
+        os.mkdir(_cache)
+
+    custom_object.update({'Sparse': Sparse,
+                          'SparseConv2D': SparseConv2D,
+                          'SparseDepthwiseConv2D': SparseDepthwiseConv2D,
+                          'NoisySGD': NoisySGD})
+
+    # https://stackoverflow.com/questions/8384737/extract-file-name-from-path-no-matter-what-the-os-path-format
+    converted_model_filename = model.name + "_converted_to_sparse"
+    file_path = os.path.join(_cache, converted_model_filename + ".h5")
+    if cache and os.path.exists(file_path):
+        print("Using cached version of", converted_model_filename)
+        K.clear_session()
+        # Return the model
+        return load_model(file_path, custom_objects=custom_object)
+
+    # create new model which will contain the sparse layers
     sparse_model = Sequential()
 
     model_input_shape = None
@@ -71,22 +92,7 @@ def replace_dense_with_sparse(
         else:
             sparse_model.add(layer)
 
-        # if hasattr(layer, 'activation') and act_to_use is not None:
-        #     layer.activation = act_to_use
-
-    _cache = "__pycache__"
-    if not os.path.isdir(_cache):
-        os.mkdir(_cache)
-
-    custom_object.update({'Sparse': Sparse,
-                          'SparseConv2D': SparseConv2D,
-                          'SparseDepthwiseConv2D': SparseDepthwiseConv2D,
-                          'NoisySGD': NoisySGD})
-
-    # https://stackoverflow.com/questions/8384737/extract-file-name-from-path-no-matter-what-the-os-path-format
-    converted_model_filename = model.name + "_converted_to_sparse"
     print("Converted filename", converted_model_filename)
-    file_path = os.path.join(_cache, converted_model_filename + ".h5")
     with CustomObjectScope(custom_object):
         sparse_model.save(file_path)
     fix_layer0(file_path, model_input_shape or [None, 224, 224, 3], 'float32')
