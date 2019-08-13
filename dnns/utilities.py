@@ -4,9 +4,14 @@ import xml.etree.ElementTree as ET
 from keras.applications import imagenet_utils as iu
 from keras_preprocessing.image.utils import load_img, img_to_array
 import numpy as np
+import ntpath
 
 all_imagenet_classes = None
 class2index = None
+
+def path_leaf(path):
+    head, tail = ntpath.split(path)
+    return tail or ntpath.basename(head)
 
 
 def _imagenet_class_lookup(cls):
@@ -44,6 +49,7 @@ def _path_management(mode, root_path):
     img_dict = {}
     classes = []
     cls_dict = {}
+    cls_to_label = {}
 
     if mode == "train":
         img_dirs = os.listdir(img_additional_path)
@@ -94,7 +100,17 @@ def _path_management(mode, root_path):
         print("=" * 50, "\nYou have fewer image classes than total classes")
         print("If you expected this, disregard this message", "\n" + "=" * 50)
 
-    return np.asarray(images), np.asarray(classes), img_dict, cls_dict
+    for cls in img_dict.keys():
+        # class name (e.g. n12267677) should be linked to a set of indices
+        # decoded from the requisite xml ... we will just go with the 1 entry
+        index = _imagenet_class_lookup(cls)
+        # set the required label
+        label = np.zeros(1000)
+        label[index] = 1
+        cls_to_label[cls] = label
+
+
+    return np.asarray(images), np.asarray(classes), img_dict, cls_to_label
 
 
 def imagenet_generator(mode, batch, root_path,
@@ -131,10 +147,12 @@ def imagenet_generator(mode, batch, root_path,
 
             # assemble batch of labels if there are any classes
             if len(class_paths) > 0:
-                _curr_cls_paths = class_paths[indices_to_yield]
-                for _ccp in _curr_cls_paths:
-                    # TODO look in xmls to create 1000 output vector labels
-                    pass
+                # _curr_cls_paths = class_paths[indices_to_yield]
+                for _cip in _curr_img_paths:
+                    pl = path_leaf(_cip)[:-5]
+                    split_pl = pl.split("_")
+                    labels_to_yield.append(cls_dict[split_pl[0]])
+
 
             _index += batch
             yield (np.asarray(images_to_yield), np.asarray(labels_to_yield))
