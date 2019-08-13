@@ -69,20 +69,23 @@ def _path_management(mode, root_path):
     elif mode == "val":
         img_dirs = os.listdir(img_additional_path)
         cls_dirs = os.listdir(cls_additional_path)
-        images = img_dirs
-        for _i in images:
-            img_dict[_i] = os.path.join(
+        for _i in img_dirs:
+            _ip = os.path.join(
                 img_additional_path, _i)
-        classes = cls_dirs
-        for _c in classes:
-            cls_dict[_c] = os.path.join(
-                cls_additional_path, _c)
+            images.append(_ip)
+            img_dict[_i] = _ip
+        for _c in cls_dirs:
+            _cp = os.path.join(
+                img_additional_path, _c)
+            classes.append(_cp)
+            cls_dict[_c] = _cp
     elif mode == "test":
         img_dirs = os.listdir(img_additional_path)
-        images = img_dirs
-        for _i in images:
-            img_dict[_i] = os.path.join(
+        for _i in img_dirs:
+            _ip = os.path.join(
                 img_additional_path, _i)
+            img_dict[_i] = _ip
+            images.append(_ip)
     else:
         raise ValueError("Invalid mode selected {}".format(mode))
 
@@ -94,10 +97,13 @@ def _path_management(mode, root_path):
     return np.asarray(images), np.asarray(classes), img_dict, cls_dict
 
 
-def imagenet_generator(mode, batch, root_path, img_size=(224, 224), shuffle=True):
+def imagenet_generator(mode, batch, root_path,
+                       img_size=(224, 224),
+                       shuffle=True):
     image_paths, class_paths, img_dict, cls_dict = \
         _path_management(mode, root_path)
-
+    if len(image_paths) == 0:
+        raise ValueError("Why do you not have image paths?")
     indices = np.arange(len(image_paths))
     while True:
         _index = 0
@@ -105,10 +111,8 @@ def imagenet_generator(mode, batch, root_path, img_size=(224, 224), shuffle=True
         # if shuffle, shuffle indices
         if shuffle:
             np.random.shuffle(indices)
-
         # another loop keep track of generations for current epoch
         while _index < len(image_paths):
-            print(_index)
             # images and labels (classes) for the current batch
             images_to_yield = []
             labels_to_yield = []
@@ -122,26 +126,41 @@ def imagenet_generator(mode, batch, root_path, img_size=(224, 224), shuffle=True
                 x = img_to_array(load_img(_cip, target_size=img_size))
                 # preprocess Imagenet data
                 pre_processed_img = iu.preprocess_input(
-                    np.asarray(images_to_yield), mode="tf")
-                images_to_yield.append(x)
+                    np.asarray(x), mode="tf")
+                images_to_yield.append(pre_processed_img)
 
-            # assemble batch of labels
-            _curr_cls_paths = class_paths[indices_to_yield]
-
-
+            # assemble batch of labels if there are any classes
+            if len(class_paths) > 0:
+                _curr_cls_paths = class_paths[indices_to_yield]
+                for _ccp in _curr_cls_paths:
+                    # TODO look in xmls to create 1000 output vector labels
+                    pass
 
             _index += batch
-            yield (pre_processed_img, labels_to_yield)
+            yield (np.asarray(images_to_yield), np.asarray(labels_to_yield))
+        # yield None
 
 
 if __name__ == "__main__":
     ilsvrc_path = "F:\ILSVRC"
     batch_size = 10
+    print("Train generator")
     gen = imagenet_generator("train", batch_size, ilsvrc_path)
-    print(gen.__next__())
+    img, cls = gen.__next__()
+    print("train_img1", img.shape, cls, cls.shape)
+    img, cls = gen.__next__()
+    print("train_img2", img.shape, cls, cls.shape)
 
-    test_gen = imagenet_generator("test", batch_size, ilsvrc_path)
-    print(test_gen.__next__())
-
+    print("Val generator")
     val_gen = imagenet_generator("val", batch_size, ilsvrc_path)
-    print(val_gen.__next__())
+    img, cls = val_gen.__next__()
+    print("val_img", img.shape, cls, cls.shape)
+
+    print("Test generator")
+    test_gen = imagenet_generator("test", batch_size, ilsvrc_path)
+    img, cls = test_gen.__next__()
+    print("tst_img", img.shape, cls, cls.shape)
+
+    img, cls = gen.__next__()
+    print("train_img3", img.shape, cls, cls.shape)
+
