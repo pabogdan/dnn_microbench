@@ -1,6 +1,6 @@
 from keras.datasets import mnist, cifar10, cifar100
 import keras
-from utilities import imagenet_generator
+from utilities import imagenet_generator, imagenet_number_of_samples
 
 
 def load_and_preprocess_dataset(dataset_name, categorical_output=True,
@@ -72,9 +72,14 @@ def load_and_preprocess_dataset(dataset_name, categorical_output=True,
         val_gen = imagenet_generator("val", batch_size, path)
         test_gen = imagenet_generator("test", batch_size, path)
 
+        numbers = imagenet_number_of_samples()
+
         return {'train': train_gen,
+                'no_train': numbers['train'],
                 'val': val_gen,
+                'no_val': numbers['val'],
                 'test': test_gen,
+                'no_test': numbers['test'],
                 'img_dims': (224, 224, 3),
                 'input_shape': (224, 224, 3),
                 'num_classes': 1000,

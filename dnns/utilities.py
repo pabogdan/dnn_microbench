@@ -9,6 +9,7 @@ import ntpath
 
 all_imagenet_classes = None
 class2index = None
+number_of_samples = {}
 
 def path_leaf(path):
     head, tail = ntpath.split(path)
@@ -26,6 +27,13 @@ def _imagenet_class_lookup(cls):
 
     return class2index[cls]
 
+def imagenet_number_of_samples(mode=None):
+    global number_of_samples
+    if mode is None:
+        return number_of_samples
+    return number_of_samples[mode]
+
+
 
 def _path_management(mode, root_path):
     '''
@@ -37,6 +45,7 @@ def _path_management(mode, root_path):
     :return:
     :rtype:
     '''
+    global number_of_samples
     _cls_loc = "CLS-LOC"
     img_additional_path = os.path.join(
         root_path, "Data", _cls_loc, mode)
@@ -73,6 +82,7 @@ def _path_management(mode, root_path):
                 mini_cls.append(os.path.join(c, i))
             classes += mini_cls
             cls_dict[dir] = mini_cls
+        number_of_samples["train"] = len(images)
     elif mode == "val":
         img_dirs = os.listdir(img_additional_path)
         cls_dirs = os.listdir(cls_additional_path)
@@ -86,6 +96,7 @@ def _path_management(mode, root_path):
                 cls_additional_path, _c)
             classes.append(_cp)
             cls_dict[_c] = _cp
+        number_of_samples["val"] = len(images)
     elif mode == "test":
         img_dirs = os.listdir(img_additional_path)
         for _i in img_dirs:
@@ -93,6 +104,7 @@ def _path_management(mode, root_path):
                 img_additional_path, _i)
             img_dict[_i] = _ip
             images.append(_ip)
+        number_of_samples["test"] = len(images)
     else:
         raise ValueError("Invalid mode selected {}".format(mode))
 
