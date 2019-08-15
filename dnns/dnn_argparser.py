@@ -13,6 +13,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument('model', type=str,
                     help='network architecture / model to train and test')
 
+parser.add_argument('--dataset_path', type=str,
+                    help='path for dataset')
+
 parser.add_argument('--result_filename', type=str,
                     help='filename for results')
 

@@ -1,8 +1,11 @@
 from keras.datasets import mnist, cifar10, cifar100
 import keras
+from utilities import imagenet_generator
 
 
-def load_and_preprocess_dataset(dataset_name, categorical_output=True):
+def load_and_preprocess_dataset(dataset_name, categorical_output=True,
+                                batch_size=100, path=None):
+    path = path or ''
     # Dataset selection
     if dataset_name.lower() == "mnist":
         # input image dimensions
@@ -65,7 +68,18 @@ def load_and_preprocess_dataset(dataset_name, categorical_output=True):
         print(x_train.shape[0], 'train samples')
         print(x_test.shape[0], 'test samples')
     elif dataset_name.lower() == "imagenet":
-        raise NotImplementedError("{} handling to be supported soon.".format(dataset_name))
+        train_gen = imagenet_generator("train", batch_size, path)
+        val_gen = imagenet_generator("val", batch_size, path)
+        test_gen = imagenet_generator("test", batch_size, path)
+
+        return {'train': train_gen,
+                'val': val_gen,
+                'test': test_gen,
+                'img_dims': (224, 224, 3),
+                'input_shape': (224, 224, 3),
+                'num_classes': 1000,
+                'categorical_output': True}
+
     else:
         raise NameError("Dataset {} unrecognised.".format(dataset_name))
 
