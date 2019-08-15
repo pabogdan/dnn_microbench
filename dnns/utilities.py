@@ -1,6 +1,7 @@
 import os
 import json
 import xml.etree.ElementTree as ET
+import xml
 from keras.applications import imagenet_utils as iu
 from keras_preprocessing.image.utils import load_img, img_to_array
 import numpy as np
@@ -82,7 +83,7 @@ def _path_management(mode, root_path):
             img_dict[_i] = _ip
         for _c in cls_dirs:
             _cp = os.path.join(
-                img_additional_path, _c)
+                cls_additional_path, _c)
             classes.append(_cp)
             cls_dict[_c] = _cp
     elif mode == "test":
@@ -96,27 +97,49 @@ def _path_management(mode, root_path):
         raise ValueError("Invalid mode selected {}".format(mode))
 
     # Check if we have the same number of images as classes
+    print("=" * 50, "\n", mode.capitalize(), "generator")
     if len(img_dict.keys()) < len(cls_dict.keys()):
         print("=" * 50, "\nYou have fewer image classes than total classes")
-        print("If you expected this, disregard this message", "\n" + "=" * 50)
-
-    for cls in img_dict.keys():
-        # class name (e.g. n12267677) should be linked to a set of indices
-        # decoded from the requisite xml ... we will just go with the 1 entry
-        index = _imagenet_class_lookup(cls)
-        # set the required label
-        label = np.zeros(1000)
-        label[index] = 1
-        cls_to_label[cls] = label
+        print("If you expected this, disregard this message")
+    print("=" * 50, "\n")
 
 
-    return np.asarray(images), np.asarray(classes), img_dict, cls_to_label
+    cls_to_label = {}
+    for cls in classes:
+        pl = path_leaf(cls)[:-4]
+        try:
+            xml_tree = ET.parse(cls)
+            root = xml_tree.getroot()
+            for o in root.iter('object'):
+                index = _imagenet_class_lookup(o[0].text)
+                # set the required label
+                label = np.zeros(1000)
+                label[index] = 1
+                cls_to_label[pl] = label
+                break
+        except xml.etree.ElementTree.ParseError as e:
+            print("XML corruption occured. This XML is empty", cls)
+
+
+    if mode == "train":
+        # Imagenet is inconsistent. Some JPEGs don't have XML equivalents
+        for img in images:
+            pl = path_leaf(img)[:-5]
+            if pl not in cls_to_label.keys():
+                split_pl = pl.split("_")[0]
+                index = _imagenet_class_lookup(split_pl)
+                # set the required label
+                label = np.zeros(1000)
+                label[index] = 1
+                cls_to_label[pl] = label
+
+    return np.asarray(images), np.asarray(classes), cls_to_label
 
 
 def imagenet_generator(mode, batch, root_path,
                        img_size=(224, 224),
                        shuffle=True):
-    image_paths, class_paths, img_dict, cls_dict = \
+    image_paths, class_paths, cls_dict = \
         _path_management(mode, root_path)
     if len(image_paths) == 0:
         raise ValueError("Why do you not have image paths?")
@@ -147,16 +170,12 @@ def imagenet_generator(mode, batch, root_path,
 
             # assemble batch of labels if there are any classes
             if len(class_paths) > 0:
-                # _curr_cls_paths = class_paths[indices_to_yield]
                 for _cip in _curr_img_paths:
                     pl = path_leaf(_cip)[:-5]
-                    split_pl = pl.split("_")
-                    labels_to_yield.append(cls_dict[split_pl[0]])
-
+                    labels_to_yield.append(cls_dict[pl])
 
             _index += batch
             yield (np.asarray(images_to_yield), np.asarray(labels_to_yield))
-        # yield None
 
 
 if __name__ == "__main__":
@@ -165,20 +184,20 @@ if __name__ == "__main__":
     print("Train generator")
     gen = imagenet_generator("train", batch_size, ilsvrc_path)
     img, cls = gen.__next__()
-    print("train_img1", img.shape, cls, cls.shape)
+    print("train_img1", img.shape, cls.shape)
     img, cls = gen.__next__()
-    print("train_img2", img.shape, cls, cls.shape)
+    print("train_img2", img.shape, cls.shape)
 
     print("Val generator")
     val_gen = imagenet_generator("val", batch_size, ilsvrc_path)
     img, cls = val_gen.__next__()
-    print("val_img", img.shape, cls, cls.shape)
+    print("val_img", img.shape, cls.shape)
 
     print("Test generator")
     test_gen = imagenet_generator("test", batch_size, ilsvrc_path)
     img, cls = test_gen.__next__()
-    print("tst_img", img.shape, cls, cls.shape)
+    print("tst_img", img.shape, cls.shape)
 
     img, cls = gen.__next__()
-    print("train_img3", img.shape, cls, cls.shape)
+    print("train_img3", img.shape, cls.shape)
 
