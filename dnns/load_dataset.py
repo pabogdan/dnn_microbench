@@ -4,7 +4,8 @@ from utilities import ImagenetDataGenerator
 
 
 def load_and_preprocess_dataset(dataset_name, categorical_output=True,
-                                batch_size=100, path=None):
+                                batch_size=100, path=None,
+                                steps_per_epoch=None):
     path = path or ''
     # Dataset selection
     if dataset_name.lower() == "mnist":
@@ -68,16 +69,15 @@ def load_and_preprocess_dataset(dataset_name, categorical_output=True,
         print(x_train.shape[0], 'train samples')
         print(x_test.shape[0], 'test samples')
     elif dataset_name.lower() == "imagenet":
-        train_gen = ImagenetDataGenerator("train", batch_size, path)
-        val_gen = ImagenetDataGenerator("val", batch_size, path)
-        test_gen = ImagenetDataGenerator("test", batch_size, path)
+        train_gen = ImagenetDataGenerator("train", batch_size, path,
+                                          steps_per_epoch=steps_per_epoch)
+        val_gen = ImagenetDataGenerator("val", batch_size, path,
+                                        steps_per_epoch=steps_per_epoch)
 
         return {'train': train_gen(),
                 'no_train': train_gen.imagenet_number_of_samples(),
                 'val': val_gen(),
                 'no_val': val_gen.imagenet_number_of_samples(),
-                'test': test_gen(),
-                '': test_gen.imagenet_number_of_samples(),
                 'img_dims': (224, 224, 3),
                 'input_shape': (224, 224, 3),
                 'num_classes': 1000,

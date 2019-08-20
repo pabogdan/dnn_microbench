@@ -56,6 +56,12 @@ parser.add_argument('--tensorboard',
 parser.add_argument('--epochs', type=int,
                     help='number of epochs', default=None)
 
+
+parser.add_argument('--steps_per_epoch', type=int,
+                    help='When using data generators - '
+                         'how many batches to generate each epoch',
+                    default=None)
+
 parser.add_argument('--batch', type=int,
                     help='batch size', default=batch_size)
 

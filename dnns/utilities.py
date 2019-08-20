@@ -17,7 +17,7 @@ def path_leaf(path):
 class ImagenetDataGenerator(object):
     def __init__(self, mode, batch, root_path,
                  img_size=(224, 224),
-                 shuffle=True):
+                 shuffle=True, steps_per_epoch=None):
         self.mode = mode
         self.batch = batch
         self.root_path = root_path
@@ -27,6 +27,8 @@ class ImagenetDataGenerator(object):
         self.all_imagenet_classes = None
         self.class2index = None
         self.number_of_samples = 0
+
+        self.steps_per_epoch = steps_per_epoch
 
         self.image_paths, self.class_paths, self.cls_dict = \
             self._path_management()
@@ -115,8 +117,13 @@ class ImagenetDataGenerator(object):
             raise ValueError("Invalid mode selected {}".format(self.mode))
 
         self.number_of_samples = len(images)
+        images = np.asarray(images)
+        classes = np.asarray(classes)
+        img_names = np.copy(images)
+        for i, name in enumerate(img_names):
+            img_names[i] = path_leaf(name).split(".")[0]
 
-
+        cls_dict = dict.fromkeys(img_names)
         # Check if we have the same number of images as classes
         print("=" * 50, "\n", self.mode.capitalize(), "generator")
         if len(img_dict.keys()) < len(cls_dict.keys()):
@@ -124,28 +131,30 @@ class ImagenetDataGenerator(object):
             print("If you expected this, disregard this message")
         print("=" * 50, "\n")
 
-        progbar_no_updates = len(classes) + len(images) if self.mode == "train" else len(classes)
-
-        progbar = Progbar(progbar_no_updates, interval=2)
         cls_to_label = {}
-        for index, cls in enumerate(classes):
-            progbar.update(index)
-            pl = path_leaf(cls)[:-4]
-            try:
-                xml_tree = ET.parse(cls)
-                root = xml_tree.getroot()
-                for o in root.iter('object'):
-                    index = self._imagenet_class_lookup(o[0].text)
-                    # set the required label
-                    label = np.zeros(1000)
-                    label[index] = 1
-                    cls_to_label[pl] = label
-                    break
-            except xml.etree.ElementTree.ParseError as e:
-                print("XML corruption occured. This XML is empty", cls)
+        if self.mode != "train":
+            progbar_no_updates = len(classes)
+            progbar = Progbar(progbar_no_updates, interval=2)
+            for index, cls in enumerate(classes):
+                progbar.update(index)
+                pl = path_leaf(cls)[:-4]
+                try:
+                    xml_tree = ET.parse(cls)
+                    root = xml_tree.getroot()
+                    for o in root.iter('object'):
+                        index = self._imagenet_class_lookup(o[0].text)
+                        # set the required label
+                        label = np.zeros(1000)
+                        label[index] = 1
+                        cls_to_label[pl] = label
+                        break
+                except xml.etree.ElementTree.ParseError as e:
+                    print("XML corruption occured. This XML is empty", cls)
 
         if self.mode == "train":
             # Imagenet is inconsistent. Some JPEGs don't have XML equivalents
+            progbar_no_updates = len(images)
+            progbar = Progbar(progbar_no_updates, interval=2)
             for index, img in enumerate(images):
                 progbar.update(index)
                 pl = path_leaf(img)[:-5]
@@ -170,7 +179,8 @@ class ImagenetDataGenerator(object):
             if self.shuffle:
                 np.random.shuffle(indices)
             # another loop keep track of generations for current epoch
-            while _index < len(self.image_paths):
+            while _index < len(self.image_paths) and \
+                    _index < self.steps_per_epoch * self.batch:
                 # images and labels (classes) for the current batch
                 images_to_yield = []
                 labels_to_yield = []
