@@ -13,6 +13,7 @@ from keras import backend as K
 import ntpath
 import json
 import h5py
+import numpy as np
 
 
 # https://github.com/keras-team/keras/issues/10417#issuecomment-435620108
@@ -37,7 +38,7 @@ def replace_dense_with_sparse(
         reg_coeffs=None,
         conn_decay=None,
         custom_object={},
-        cache=True):
+        cache=True, threshold=True):
     '''
     Model is defined in Howard et al (2017)
     MobileNets: Efficient Convolutional Neural Networks for Mobile Vision
@@ -55,6 +56,20 @@ def replace_dense_with_sparse(
                           'SparseConv2D': SparseConv2D,
                           'SparseDepthwiseConv2D': SparseDepthwiseConv2D,
                           'NoisySGD': NoisySGD})
+
+    all_layers = model.layers
+    number_of_connections_per_layer = []
+    for layer in all_layers:
+        curr_config = layer.get_config()
+        name = curr_config['name']
+        if "_bn" in name or "_relu" in name:
+            continue
+        curr_weights = layer.get_weights()
+        no_weights = len(curr_weights)
+        if no_weights > 0:
+            number_of_connections_per_layer.append(curr_weights[0].size)
+    number_of_connections_per_layer = np.asarray(number_of_connections_per_layer)
+    mean_no_conn = np.mean(number_of_connections_per_layer)
 
     # https://stackoverflow.com/questions/8384737/extract-file-name-from-path-no-matter-what-the-os-path-format
     converted_model_filename = model.name + "_converted_to_sparse"
@@ -77,15 +92,17 @@ def replace_dense_with_sparse(
         layer_config['name'] = "sparse_" + layer_config['name']
         # replace with the appropriate sparse layer
         curr_sparse_layer = None
+        # however, if threshold: only replace when above the mean connectivity
+        curr_weights = layer.get_weights()
         if i == 0 and 'batch_input_shape' in layer_config:
             model_input_shape = layer_config['batch_input_shape']
 
-        if isinstance(layer, DepthwiseConv2D):
-            curr_sparse_layer = SparseDepthwiseConv2D(**layer_config)
-        elif isinstance(layer, Conv2D):
-            curr_sparse_layer = SparseConv2D(**layer_config)
+        if isinstance(layer, Conv2D):
+            if (threshold and curr_weights[0].size > mean_no_conn) or not threshold:
+                curr_sparse_layer = SparseConv2D(**layer_config)
         elif isinstance(layer, Dense):
-            curr_sparse_layer = Sparse(**layer_config)
+            if (threshold and curr_weights[0].size > mean_no_conn) or not threshold:
+                curr_sparse_layer = Sparse(**layer_config)
 
         if curr_sparse_layer is not None:
             sparse_model.add(curr_sparse_layer)

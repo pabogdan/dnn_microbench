@@ -31,7 +31,7 @@ class RewiringCallback(Callback):
                 kernels.append(layer.get_weights()[0])
                 masks.append(K.get_value(layer.mask))
                 layers.append(layer)
-        return np.asarray(kernels), np.asarray(masks), layers
+        return kernels, masks, layers
 
     def on_epoch_begin(self, epoch, logs=None):
         logs = logs or {}
