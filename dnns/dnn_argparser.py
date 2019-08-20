@@ -62,6 +62,11 @@ parser.add_argument('--steps_per_epoch', type=int,
                          'how many batches to generate each epoch',
                     default=None)
 
+parser.add_argument('--val_steps_per_epoch', type=int,
+                    help='When using data generators - '
+                         'how many batches to generate each epoch',
+                    default=None)
+
 parser.add_argument('--batch', type=int,
                     help='batch size', default=batch_size)
 

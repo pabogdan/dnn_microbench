@@ -117,6 +117,8 @@ class ImagenetDataGenerator(object):
             raise ValueError("Invalid mode selected {}".format(self.mode))
 
         self.number_of_samples = len(images)
+        if not self.steps_per_epoch:
+            self.steps_per_epoch = self.number_of_samples // self.batch
         images = np.asarray(images)
         classes = np.asarray(classes)
         img_names = np.copy(images)
@@ -205,6 +207,22 @@ class ImagenetDataGenerator(object):
 
                 _index += self.batch
                 yield (np.asarray(images_to_yield), np.asarray(labels_to_yield))
+
+
+def generate_filename(optimizer, activation,
+                      sparse, loss, suffix, acronym=False):
+    _combined_string = ""
+    if not acronym:
+        _combined_string += "_" + activation
+        _combined_string += "_" + loss
+        _combined_string += "_" + sparse
+        _combined_string += "_" + optimizer + suffix
+    else:
+        _combined_string += activation[0]
+        _combined_string += loss[0]
+        _combined_string += "_" + sparse
+        _combined_string += "_" + optimizer[0] + suffix
+    return _combined_string
 
 
 if __name__ == "__main__":

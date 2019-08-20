@@ -1,5 +1,7 @@
 import json
 
+from keras.callbacks import ModelCheckpoint
+
 from dnn_argparser import *
 from noisy_softplus import NoisySoftplus
 # Keras stuff
@@ -16,6 +18,8 @@ import os
 import tensorflow as tf
 from keras import backend as K
 import pylab as plt
+
+from utilities import generate_filename
 
 start_time = plt.datetime.datetime.now()
 # Get number of cores reserved by the batch system
@@ -80,7 +84,8 @@ model.summary()
 
 dataset_info = load_and_preprocess_dataset(
     'imagenet', batch_size=batch, path=args.dataset_path,
-    steps_per_epoch=args.steps_per_epoch)
+    steps_per_epoch=args.steps_per_epoch,
+    val_steps_per_epoch=args.val_steps_per_epoch)
 train_gen = dataset_info['train']
 val_gen = dataset_info['val']
 # test_gen = dataset_info['test']
@@ -93,11 +98,16 @@ no_val = dataset_info['no_val']
 
 # set up steps_per_epoch
 steps_per_epoch = args.steps_per_epoch or no_train // batch
-print("Steps per epoch:", steps_per_epoch)
+validation_steps_per_epoch = args.val_steps_per_epoch or no_val // batch
+
+print("Training Steps per epoch", steps_per_epoch)
+print("Validation Steps per epoch", validation_steps_per_epoch)
 print("Number of classes:", num_classes)
 print("Number of training examples:", no_train)
 print("Number of validation examples:", no_val)
 
+activation_name = "relu"
+loss_name = "crossent"
 
 if args.optimizer.lower() == "sgd":
     if not args.sparse_layers:
@@ -129,6 +139,7 @@ loss = keras.losses.categorical_crossentropy
 deep_r = RewiringCallback(fixed_conn=args.disable_rewiring,
                           soft_limit=args.soft_rewiring,
                           asserts_on=args.asserts_on)
+
 model.compile(
     optimizer=optimizer,
     loss=loss,
@@ -155,12 +166,17 @@ if args.sparse_layers:
         sparse_name = "sparse_hard"
 else:
     sparse_name = "dense"
-activation_name = "relu"
-loss_name = "crossent"
-output_filename += "_" + activation_name
-output_filename += "_" + loss_name
-output_filename += "_" + sparse_name
-output_filename += "_" + optimizer_name + suffix
+
+__acr_filename = "models/" + generate_filename(
+    optimizer_name, activation_name, sparse_name, loss_name, suffix,
+    acronym=True)
+checkpoint_filename = __acr_filename + \
+                      "weights.{epoch:02d}-{val_loss:.2f}.hdf5"
+checkpoint_callback = ModelCheckpoint(checkpoint_filename)
+
+__filename = generate_filename(
+    optimizer_name, activation_name, sparse_name, loss_name, suffix)
+output_filename += __filename
 output_filename += ".csv"
 
 csv_path = os.path.join(args.result_dir, output_filename)
@@ -187,10 +203,10 @@ if args.tensorboard:
     callback_list.append(tb)
 
 callback_list.append(csv_logger)
+callback_list.append(checkpoint_callback)
 
 if not args.data_augmentation:
-    validation_steps_per_epoch = no_val // batch
-    print("Steps per epoch", steps_per_epoch)
+
     model.fit_generator(train_gen,
                         steps_per_epoch=steps_per_epoch,
                         epochs=epochs,
@@ -199,8 +215,9 @@ if not args.data_augmentation:
                         validation_data=val_gen,
                         validation_steps=validation_steps_per_epoch,
                         shuffle=True,
-                        max_queue_size=20,
-                        # validation_split=.2
+                        max_queue_size=10,
+                        use_multiprocessing=True,
+                        workers=1
                         )
 else:
     raise NotImplementedError("Data augmentation not currently supported for "
@@ -213,16 +230,14 @@ print("Total time elapsed -- " + str(total_time))
 
 score = model.evaluate_generator(val_gen,
                                  steps=validation_steps_per_epoch,
-                                 max_queue_size=20,
+                                 max_queue_size=10,
                                  verbose=1)
 print('Test Loss:', score[0])
 print('Test Accuracy:', score[1])
 
 model_path = os.path.join(
     args.model_dir,
-    "trained_model_of_" + model_name + "_" + activation_name +
-    "_" + loss_name + "_" + sparse_name +
-    "_" + optimizer_name + suffix)
+    "trained_model_of_" + model_name +  __filename + ".h5")
 
 model.save(model_path)
 
