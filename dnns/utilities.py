@@ -195,6 +195,7 @@ class ImagenetDataGenerator(object):
                 for _cip in _curr_img_paths:
                     x = img_to_array(load_img(_cip, target_size=self.img_size))
                     # preprocess Imagenet data
+                    # https://github.com/keras-team/keras-applications/blob/master/keras_applications/mobilenet.py#L75-L84
                     pre_processed_img = iu.preprocess_input(
                         np.asarray(x), mode="tf")
                     images_to_yield.append(pre_processed_img)
@@ -210,18 +211,19 @@ class ImagenetDataGenerator(object):
 
 
 def generate_filename(optimizer, activation,
-                      sparse, loss, suffix, acronym=False):
+                      sparse, loss, suffix, random_weights, acronym=False):
     _combined_string = ""
+    rand_weights = "_rand" if random_weights else ""
     if not acronym:
         _combined_string += "_" + activation
         _combined_string += "_" + loss
         _combined_string += "_" + sparse
-        _combined_string += "_" + optimizer + suffix
+        _combined_string += "_" + optimizer + rand_weights + suffix
     else:
         _combined_string += activation[0]
         _combined_string += loss[0]
         _combined_string += "_" + sparse
-        _combined_string += "_" + optimizer[0] + suffix
+        _combined_string += "_" + optimizer[0] + rand_weights + suffix
     return _combined_string
 
 

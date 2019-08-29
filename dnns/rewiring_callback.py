@@ -21,6 +21,9 @@ class RewiringCallback(Callback):
         self.noise_coeff = noise_coeff
         self.asserts_on = asserts_on
 
+        self.pre_kernels = None
+        self.pre_masks = None
+
     @staticmethod
     def get_kernels_and_masks(model):
         kernels = []
@@ -42,8 +45,9 @@ class RewiringCallback(Callback):
 
     def on_batch_begin(self, batch, logs=None):
         # save the weights before updating to compare sign later
-        self.pre_kernels, self.pre_masks, _ = \
-            RewiringCallback.get_kernels_and_masks(self.model)
+        if self.pre_kernels is None and self.pre_masks is None:
+            self.pre_kernels, self.pre_masks, _ = \
+                RewiringCallback.get_kernels_and_masks(self.model)
 
     def on_batch_end(self, batch, logs=None):
         logs = logs or {}
@@ -137,6 +141,10 @@ class RewiringCallback(Callback):
                 # add to masked post actives
                 masked_posts = post_k * (rew_candidates_mask)
                 K.set_value(l.original_kernel, masked_pres + masked_posts)
+
+            # Update pre_kernels and pre_masks
+            self.pre_kernels = self.post_kernels
+            self.pre_masks = new_m
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}

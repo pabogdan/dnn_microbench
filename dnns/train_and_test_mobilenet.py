@@ -58,7 +58,10 @@ if args.conn_decay:
     builtin_sparsity = np.ones(len(conn_decay_values)).tolist()
 
 # Dense model
-model = keras.applications.MobileNet()
+if args.random_weights:
+    model = keras.applications.MobileNet(weights=None)
+else:
+    model = keras.applications.MobileNet()
 if args.sparse_layers and not args.soft_rewiring:
     if args.conn_decay:
         print("Connectivity decay rewiring enabled", conn_decay_values)
@@ -169,13 +172,15 @@ else:
 
 __acr_filename = "models/" + generate_filename(
     optimizer_name, activation_name, sparse_name, loss_name, suffix,
+    args.random_weights,
     acronym=True)
 checkpoint_filename = __acr_filename + \
-                      "weights.{epoch:02d}-{val_loss:.2f}.hdf5"
+                      "_weights.{epoch:02d}-{val_acc:.2f}.hdf5"
 checkpoint_callback = ModelCheckpoint(checkpoint_filename)
 
 __filename = generate_filename(
-    optimizer_name, activation_name, sparse_name, loss_name, suffix)
+    optimizer_name, activation_name, sparse_name, loss_name, suffix,
+    args.random_weights)
 output_filename += __filename
 output_filename += ".csv"
 
