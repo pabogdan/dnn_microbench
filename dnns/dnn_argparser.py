@@ -65,6 +65,12 @@ parser.add_argument('--no-cache', dest="no_cache",
 parser.add_argument('--epochs', type=int,
                     help='number of epochs', default=None)
 
+# When passing epochs in like this, do we start counting from 0 or 1?
+# https://keras.io/models/sequential/ would suggest that the default is 0
+parser.add_argument('--continue_from_epoch', type=int,
+                    help='continue leraning from a checkpoint '
+                         '(first epoch starts at 0)', default=0)
+
 
 parser.add_argument('--steps_per_epoch', type=int,
                     help='When using data generators - '

@@ -10,6 +10,9 @@ from keras.models import load_model
 from load_dataset import load_and_preprocess_dataset
 import numpy as np
 from keras_preprocessing.image import ImageDataGenerator
+from noisy_sgd import NoisySGD
+from noisy_softplus import NoisySoftplus
+from sparse_layer import Sparse, SparseConv2D, SparseDepthwiseConv2D
 
 from replace_dense_with_sparse import replace_dense_with_sparse
 from rewiring_callback import RewiringCallback
@@ -57,11 +60,37 @@ if args.conn_decay:
     conn_decay_values = (np.log(1. / final_conns) / epochs).tolist()
     builtin_sparsity = np.ones(len(conn_decay_values)).tolist()
 
-# Dense model
-if args.random_weights:
-    model = keras.applications.MobileNet(weights=None)
+# Check whether the model that has been provided to argparser is .hdf5 / .h5 on
+# disk or a reference to Keras Mobilenet (i.e. :mobilenet)
+_is_builtin_model = False
+
+if args.model[0] == ":":
+    model_name = args.model[1:]
+    _is_builtin_model = True
 else:
-    model = keras.applications.MobileNet()
+    print("Continuing training on model", args.model)
+    model_name = "mobilenet"
+    # Based on the model name we could infer a re-starting epoch
+    # TODO infer epoch number of saved model
+
+# Dense model
+if _is_builtin_model:
+    # Is a built-in model = load from keras
+    if args.random_weights:
+        model = keras.applications.MobileNet(weights=None)
+    else:
+        model = keras.applications.MobileNet()
+else:
+    # The model is not built-in = load from disk
+    # Just in case, load our usual custom objects
+    c_obj = {'Sparse': Sparse,
+             'SparseConv2D': SparseConv2D,
+             'SparseDepthwiseConv2D': SparseDepthwiseConv2D,
+             'NoisySGD': NoisySGD}
+    # Retrieve model from disk
+    model = load_model(args.model, custom_objects=c_obj)
+
+
 if args.sparse_layers and not args.soft_rewiring:
     if args.conn_decay:
         print("Connectivity decay rewiring enabled", conn_decay_values)
@@ -159,11 +188,6 @@ suffix = ""
 if args.suffix:
     suffix = "_" + args.suffix
 
-if args.model[0] == ":":
-    model_name = args.model[1:]
-else:
-    model_name = args.model
-
 output_filename = ""
 if args.result_filename:
     output_filename = args.result_filename
@@ -227,7 +251,7 @@ if not args.data_augmentation:
                         validation_data=val_gen,
                         validation_steps=validation_steps_per_epoch,
                         shuffle=True,
-                        max_queue_size=5,
+                        max_queue_size=10,
                         use_multiprocessing=True,
                         workers=1
                         )
