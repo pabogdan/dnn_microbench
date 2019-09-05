@@ -70,19 +70,19 @@ if args.sparse_layers and not args.soft_rewiring:
             activation=args.activation, batch_size=batch,
             builtin_sparsity=builtin_sparsity,
             reg_coeffs=alphas,
-            conn_decay=conn_decay_values)
+            conn_decay=conn_decay_values, cache=~args.no_cache)
     else:
         model = replace_dense_with_sparse(
             model,
             activation=args.activation, batch_size=batch,
             builtin_sparsity=builtin_sparsity,
-            reg_coeffs=alphas)
+            reg_coeffs=alphas, cache=~args.no_cache)
 elif args.sparse_layers and args.soft_rewiring:
     print("Soft rewiring enabled", args.soft_rewiring)
     model = replace_dense_with_sparse(
         model,
         activation=args.activation, batch_size=batch,
-        reg_coeffs=alphas)
+        reg_coeffs=alphas, cache=~args.no_cache)
 model.summary()
 
 dataset_info = load_and_preprocess_dataset(
@@ -131,6 +131,13 @@ elif args.optimizer.lower() in ["noisy_sgd", "ns"]:
     else:
         optimizer = NoisySGD(lr=learning_rate)
     optimizer_name = "noisy_sgd"
+elif args.optimizer.lower() in ["rms", "rms_prop", "rmsprop"]:
+    optimizer_name = "rms_prop"
+    # https://github.com/Zehaos/MobileNet/blob/master/train_image_classifier.py#L307-L312
+    optimizer = keras.optimizers.RMSprop(
+        # lr=0.01,
+        # decay=0.9, epsilon=1.0
+    )
 else:
     optimizer = args.optimizer
     optimizer_name = args.optimizer
@@ -220,7 +227,7 @@ if not args.data_augmentation:
                         validation_data=val_gen,
                         validation_steps=validation_steps_per_epoch,
                         shuffle=True,
-                        max_queue_size=10,
+                        max_queue_size=5,
                         use_multiprocessing=True,
                         workers=1
                         )
@@ -235,14 +242,14 @@ print("Total time elapsed -- " + str(total_time))
 
 score = model.evaluate_generator(val_gen,
                                  steps=validation_steps_per_epoch,
-                                 max_queue_size=10,
+                                 max_queue_size=5,
                                  verbose=1)
 print('Test Loss:', score[0])
 print('Test Accuracy:', score[1])
 
 model_path = os.path.join(
     args.model_dir,
-    "trained_model_of_" + model_name +  __filename + ".h5")
+    "trained_model_of_" + model_name + __filename + ".h5")
 
 model.save(model_path)
 

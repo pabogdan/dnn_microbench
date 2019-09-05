@@ -57,6 +57,11 @@ parser.add_argument('--tensorboard',
                     help='Whether to create tensorboard statistics',
                     action="store_true")
 
+
+parser.add_argument('--no-cache', dest="no_cache",
+                    help="don't use cached model",
+                    action="store_true")
+
 parser.add_argument('--epochs', type=int,
                     help='number of epochs', default=None)
 
