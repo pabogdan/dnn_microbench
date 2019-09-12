@@ -30,7 +30,9 @@ class ImagenetDataGenerator(object):
 
         self.steps_per_epoch = steps_per_epoch
 
-        self.image_paths, self.class_paths, self.cls_dict = \
+        self.no_classes = 0
+
+        self.image_paths, self.cls_dict = \
             self._path_management()
 
     def __call__(self):
@@ -168,7 +170,8 @@ class ImagenetDataGenerator(object):
                     label[index] = 1
                     cls_to_label[pl] = label
 
-        return np.asarray(images), np.asarray(classes), cls_to_label
+        self.no_classes = len(classes)
+        return np.asarray(images), cls_to_label
 
     def imagenet_generator(self):
         if len(self.image_paths) == 0:
@@ -201,7 +204,7 @@ class ImagenetDataGenerator(object):
                     images_to_yield.append(pre_processed_img)
 
                 # assemble batch of labels if there are any classes
-                if len(self.class_paths) > 0:
+                if self.no_classes > 0:
                     for _cip in _curr_img_paths:
                         pl = path_leaf(_cip)[:-5]
                         labels_to_yield.append(self.cls_dict[pl])

@@ -51,8 +51,8 @@ batch = args.batch or 32
 learning_rate = 0.5
 decay_rate = 0.8  # changed from 0.8
 
-p_0 = .05  # global connectivity level
-builtin_sparsity = [8 * p_0, .8 * p_0, 8 * p_0, 1]
+p_0 = .10  # global connectivity level
+builtin_sparsity = [p_0] * 8
 alphas = [0, 10 ** -7, 10 ** -6, 10 ** -9, 0]
 final_conns = np.asarray(builtin_sparsity)
 conn_decay_values = None
@@ -69,7 +69,7 @@ if args.model[0] == ":":
     _is_builtin_model = True
 else:
     print("Continuing training on model", args.model)
-    model_name = "mobilenet"
+    model_name = "mobilenet_cont"
     # Based on the model name we could infer a re-starting epoch
     # TODO infer epoch number of saved model
 
@@ -99,19 +99,19 @@ if args.sparse_layers and not args.soft_rewiring:
             activation=args.activation, batch_size=batch,
             builtin_sparsity=builtin_sparsity,
             reg_coeffs=alphas,
-            conn_decay=conn_decay_values, cache=~args.no_cache)
+            conn_decay=conn_decay_values, no_cache=args.no_cache)
     else:
         model = replace_dense_with_sparse(
             model,
             activation=args.activation, batch_size=batch,
             builtin_sparsity=builtin_sparsity,
-            reg_coeffs=alphas, cache=~args.no_cache)
+            reg_coeffs=alphas, no_cache=args.no_cache)
 elif args.sparse_layers and args.soft_rewiring:
     print("Soft rewiring enabled", args.soft_rewiring)
     model = replace_dense_with_sparse(
         model,
         activation=args.activation, batch_size=batch,
-        reg_coeffs=alphas, cache=~args.no_cache)
+        reg_coeffs=alphas, no_cache=args.no_cache)
 model.summary()
 
 dataset_info = load_and_preprocess_dataset(

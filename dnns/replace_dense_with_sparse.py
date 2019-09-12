@@ -38,7 +38,7 @@ def replace_dense_with_sparse(
         reg_coeffs=None,
         conn_decay=None,
         custom_object={},
-        cache=True, threshold=True):
+        no_cache=False, threshold=True):
     '''
     Model is defined in Howard et al (2017)
     MobileNets: Efficient Convolutional Neural Networks for Mobile Vision
@@ -74,7 +74,7 @@ def replace_dense_with_sparse(
     # https://stackoverflow.com/questions/8384737/extract-file-name-from-path-no-matter-what-the-os-path-format
     converted_model_filename = model.name + "_converted_to_sparse"
     file_path = os.path.join(_cache, converted_model_filename + ".h5")
-    if cache and os.path.exists(file_path):
+    if not no_cache and os.path.exists(file_path):
         print("Using cached version of", converted_model_filename)
         K.clear_session()
         # Return the model
@@ -97,6 +97,14 @@ def replace_dense_with_sparse(
         if i == 0 and 'batch_input_shape' in layer_config:
             model_input_shape = layer_config['batch_input_shape']
 
+        if (builtin_sparsity and
+                ((threshold and len(curr_weights) > 0 and curr_weights[0].size > mean_no_conn)
+                 or not threshold)):
+            layer_config['connectivity_level'] = builtin_sparsity.pop(0)
+        if (conn_decay and
+                ((threshold and len(curr_weights) > 0 and curr_weights[0].size > mean_no_conn)
+                 or not threshold)):
+            layer_config['connectivity_decay'] = conn_decay.pop(0)
         if isinstance(layer, Conv2D):
             if (threshold and curr_weights[0].size > mean_no_conn) or not threshold:
                 curr_sparse_layer = SparseConv2D(**layer_config)
@@ -108,7 +116,10 @@ def replace_dense_with_sparse(
             sparse_model.add(curr_sparse_layer)
         else:
             sparse_model.add(layer)
-
+    if builtin_sparsity:
+        assert len(builtin_sparsity) == 0
+    if conn_decay:
+        assert len(conn_decay) == 0
     print("Converted filename", converted_model_filename)
     with CustomObjectScope(custom_object):
         sparse_model.save(file_path)
