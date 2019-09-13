@@ -85,6 +85,10 @@ parser.add_argument('--val_steps_per_epoch', type=int,
 parser.add_argument('--batch', type=int,
                     help='batch size', default=batch_size)
 
+parser.add_argument('--conn_level', type=float,
+                    help='flat connectivity level used for rewiring',
+                    default=None)
+
 parser.add_argument('--optimizer', type=str,
                     help='optimizer to use', default='sgd')
 

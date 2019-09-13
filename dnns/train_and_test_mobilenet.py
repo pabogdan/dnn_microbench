@@ -51,7 +51,8 @@ batch = args.batch or 32
 learning_rate = 0.5
 decay_rate = 0.8  # changed from 0.8
 
-p_0 = .10  # global connectivity level
+p_0 = args.conn_level or .10  # global connectivity level
+print("Flat connectivity level", p_0)
 builtin_sparsity = [p_0] * 8
 alphas = [0, 10 ** -7, 10 ** -6, 10 ** -9, 0]
 final_conns = np.asarray(builtin_sparsity)
