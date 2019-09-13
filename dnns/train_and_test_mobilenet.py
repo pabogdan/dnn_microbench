@@ -154,11 +154,7 @@ elif args.optimizer.lower() in ["ada", "adadelta"]:
 elif args.optimizer.lower() in ["noisy_sgd", "ns"]:
     # custom optimizer to include noise and temperature
     from noisy_sgd import NoisySGD
-
-    if not args.sparse_layers:
-        optimizer = NoisySGD()
-    else:
-        optimizer = NoisySGD(lr=learning_rate)
+    optimizer = NoisySGD()
     optimizer_name = "noisy_sgd"
 elif args.optimizer.lower() in ["rms", "rms_prop", "rmsprop"]:
     optimizer_name = "rms_prop"
@@ -197,7 +193,10 @@ if args.sparse_layers:
     if args.soft_rewiring:
         sparse_name = "sparse_soft"
     else:
-        sparse_name = "sparse_hard"
+        if args.conn_decay:
+            sparse_name = "sparse_decay"
+        else:
+            sparse_name = "sparse_hard"
 else:
     sparse_name = "dense"
 
