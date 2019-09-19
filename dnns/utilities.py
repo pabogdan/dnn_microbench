@@ -8,6 +8,8 @@ from keras_preprocessing.image.utils import load_img, img_to_array
 import numpy as np
 import ntpath
 
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 def path_leaf(path):
     head, tail = ntpath.split(path)
@@ -40,7 +42,8 @@ class ImagenetDataGenerator(object):
 
     def _imagenet_class_lookup(self, cls):
         if self.all_imagenet_classes is None:
-            with open("imagenet_class_index.json") as f:
+            with open(os.path.join(__location__,
+                                   "imagenet_class_index.json")) as f:
                 self.all_imagenet_classes = json.load(f)
             self.class2index = {value[0]: int(key) for key, value in
                                 self.all_imagenet_classes.items()}
