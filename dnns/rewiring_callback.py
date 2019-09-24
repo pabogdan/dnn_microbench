@@ -45,9 +45,8 @@ class RewiringCallback(Callback):
 
     def on_batch_begin(self, batch, logs=None):
         # save the weights before updating to compare sign later
-        if self.pre_kernels is None and self.pre_masks is None:
-            self.pre_kernels, self.pre_masks, _ = \
-                RewiringCallback.get_kernels_and_masks(self.model)
+        self.pre_kernels, self.pre_masks, _ = \
+            RewiringCallback.get_kernels_and_masks(self.model)
 
     def on_batch_end(self, batch, logs=None):
         logs = logs or {}
@@ -142,9 +141,6 @@ class RewiringCallback(Callback):
                 masked_posts = post_k * (rew_candidates_mask)
                 K.set_value(l.original_kernel, masked_pres + masked_posts)
 
-            # Update pre_kernels and pre_masks
-            self.pre_kernels = self.post_kernels
-            self.pre_masks = new_m
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
@@ -172,13 +168,20 @@ class RewiringCallback(Callback):
                 l.connectivity_level -= l.connectivity_level * l.connectivity_decay
                 new_number_of_active_conns = l.get_number_of_active_connections()
                 if new_number_of_active_conns != curr_no_active_connections:
+                    # how many connections do we need to make dormant to have
+                    # the correct number of active connections?
                     no_diff = curr_no_active_connections - new_number_of_active_conns
-                    rewiring_candidates = np.asarray(np.where(m == 1))
-                    choices = np.random.choice(
-                        np.arange(rewiring_candidates[0].size),
-                        no_diff,
-                        replace=False)
-                    chosen_partners = tuple(rewiring_candidates[:, choices])
+                    # candidates for making dormant to be chosen from currently
+                    # active connections
+                    rewiring_candidates = np.where(m == 1)
+                    # retrieve candidate weights to be argsorted
+                    candidate_weights = K.abs(k[rewiring_candidates])
+                    argsorted_weights = K.get_value(tf.argsort(candidate_weights)[:no_diff])
+                    # de-activate the first no_diff connections
+                    # (i.e. the ones with the lowest weights)
+
+                    choices = np.asarray(rewiring_candidates)[:, argsorted_weights]
+                    chosen_partners = tuple(choices)
                     m[chosen_partners] = 0
                     K.set_value(l.mask, m)
         global_conn_lvl = total_num_active_conns/float(total_num_of_conns)
