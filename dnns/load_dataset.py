@@ -1,6 +1,6 @@
 from keras.datasets import mnist, cifar10, cifar100
 import keras
-from utilities import ImagenetDataGenerator
+from dnns.utilities import ImagenetDataGenerator
 
 
 def load_and_preprocess_dataset(dataset_name, categorical_output=True,
