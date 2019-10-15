@@ -89,6 +89,10 @@ parser.add_argument('--conn_level', type=float,
                     help='flat connectivity level used for rewiring',
                     default=None)
 
+parser.add_argument('--lr', type=float,
+                    help='learning rate to be used during training',
+                    default=None)
+
 parser.add_argument('--optimizer', type=str,
                     help='optimizer to use', default='sgd')
 

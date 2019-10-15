@@ -48,7 +48,7 @@ epochs = args.epochs or 10
 # https://github.com/Zehaos/MobileNet/blob/master/train_image_classifier.py#L191-L192
 # batch = 32
 batch = args.batch or 32
-learning_rate = 0.5
+learning_rate = args.lr  # the default is None from argparser
 decay_rate = 0.8  # changed from 0.8
 
 p_0 = args.conn_level or .10  # global connectivity level
@@ -143,10 +143,10 @@ activation_name = "relu"
 loss_name = "crossent"
 
 if args.optimizer.lower() == "sgd":
-    if not args.sparse_layers:
-        optimizer = keras.optimizers.SGD()
-    else:
+    if learning_rate:
         optimizer = keras.optimizers.SGD(lr=learning_rate)
+    else:
+        optimizer = keras.optimizers.SGD()
     optimizer_name = "sgd"
 
 elif args.optimizer.lower() in ["ada", "adadelta"]:
@@ -155,7 +155,10 @@ elif args.optimizer.lower() in ["ada", "adadelta"]:
 elif args.optimizer.lower() in ["noisy_sgd", "ns"]:
     # custom optimizer to include noise and temperature
     from noisy_sgd import NoisySGD
-    optimizer = NoisySGD()
+    if learning_rate:
+        optimizer = NoisySGD(lr=learning_rate)
+    else:
+        optimizer = NoisySGD()
     optimizer_name = "noisy_sgd"
 elif args.optimizer.lower() in ["rms", "rms_prop", "rmsprop"]:
     optimizer_name = "rms_prop"
@@ -207,7 +210,7 @@ __acr_filename = "models/" + generate_filename(
     acronym=True)
 checkpoint_filename = __acr_filename + \
                       "_weights.{epoch:02d}-{val_acc:.2f}.hdf5"
-checkpoint_callback = ModelCheckpoint(checkpoint_filename)
+checkpoint_callback = ModelCheckpoint(checkpoint_filename, period=5)
 
 __filename = generate_filename(
     optimizer_name, activation_name, sparse_name, loss_name, suffix,
