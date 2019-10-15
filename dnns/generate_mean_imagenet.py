@@ -74,7 +74,7 @@ if __name__ == "__main__":
     plt.bar(np.arange(classes.size), classes)
     plt.xlabel("Class")
     plt.ylabel("Occurances in data")
-    plt.savefig(fig_folder + "mean_image.png")
+    plt.savefig(fig_folder + "class_barchart.png")
     plt.close(fig)
 
     res_dict_val = compute_mean_img(val_gen,
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     plt.bar(np.arange(classes_val.size), classes_val)
     plt.xlabel("Class")
     plt.ylabel("Occurances in data")
-    plt.savefig(fig_folder + "mean_image_val.png")
+    plt.savefig(fig_folder + "class_barchart_val.png")
     plt.close(fig)
 
     np.savez("mean_imagenet_image",
