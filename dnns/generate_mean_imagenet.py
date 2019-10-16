@@ -20,23 +20,28 @@ def compute_mean_img(generator, batch_size, num_examples, num_classes):
 
     mean_image = None
     classes = None
+    empirical_num_examples = 0
     print("=" * 50)
     print("Computing the mean ImageNet image...")
     progbar = Progbar(steps_per_epoch, interval=1)
     for i in range(steps_per_epoch):
         img, cls = generator.__next__()
+        empirical_num_examples += batch_size
         if i == 0:
             mean_image = np.mean(img, axis=0)
             classes = np.sum(cls, axis=0)
         else:
-            curr_mean = np.mean(img, axis=0)
-            mean_image = (mean_image + curr_mean) / 2.
+            mean_image += np.mean(img, axis=0)
             classes += np.sum(cls, axis=0)
         progbar.update(i)
     print("=" * 50)
+    mean_image = mean_image / num_examples
+
     return {
         'mean_image': mean_image,
-        'classes': classes
+        'classes': classes,
+        'num_examples': num_examples,
+        'empirical_num_examples': empirical_num_examples
     }
 
 
@@ -59,11 +64,36 @@ if __name__ == "__main__":
     no_val = dataset_info['no_val']
 
     res_dict = compute_mean_img(train_gen,
-                     num_classes=num_classes,
-                     num_examples=no_train,
-                     batch_size=batch_size)
+                                num_classes=num_classes,
+                                num_examples=no_train,
+                                batch_size=batch_size)
     mean_image = res_dict['mean_image']
     classes = res_dict['classes']
+
+    res_dict_val = compute_mean_img(val_gen,
+                                    num_classes=num_classes,
+                                    num_examples=no_val,
+                                    batch_size=batch_size)
+    mean_image_val = res_dict_val['mean_image']
+    classes_val = res_dict_val['classes']
+
+    np.savez("mean_imagenet_image",
+             # Mean image
+             mean_image=mean_image,
+             mean_image_val=mean_image_val,
+
+             # class occurrences
+             classes=classes,
+             classes_val=classes_val,
+
+             # number of examples (passed in from generator)
+             num_examples=res_dict['num_examples'],
+             num_examples_val=res_dict_val['num_examples'],
+
+             # number of examples see in the function compute_mean_img
+             empirical_num_classes=res_dict['empirical_num_classes'],
+             empirical_num_classes_val=res_dict_val['empirical_num_classes']
+             )
 
     fig = plt.figure(figsize=(8, 8), dpi=600)
     plt.imshow(mean_image + 1)
@@ -77,14 +107,6 @@ if __name__ == "__main__":
     plt.savefig(fig_folder + "class_barchart.png")
     plt.close(fig)
 
-    res_dict_val = compute_mean_img(val_gen,
-                     num_classes=num_classes,
-                     num_examples=no_val,
-                     batch_size=batch_size)
-    mean_image_val = res_dict['mean_image']
-    classes_val = res_dict['classes']
-
-
     fig = plt.figure(figsize=(8, 8), dpi=600)
     plt.imshow(mean_image_val + 1)
     plt.savefig(fig_folder + "mean_image_val.png")
@@ -96,9 +118,3 @@ if __name__ == "__main__":
     plt.ylabel("Occurances in data")
     plt.savefig(fig_folder + "class_barchart_val.png")
     plt.close(fig)
-
-    np.savez("mean_imagenet_image",
-             mean_image=mean_image,
-             classes=classes,
-             mean_image_val=mean_image_val,
-             classes_val=classes_val)
