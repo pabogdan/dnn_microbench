@@ -47,13 +47,13 @@ def compute_mean_img(generator, batch_size, num_examples, num_classes):
 
 if __name__ == "__main__":
     # check if the figures folder exist
+    from dnn_argparser import *
     fig_folder = 'figures/'
     if not os.path.isdir(fig_folder) and not os.path.exists(fig_folder):
         os.mkdir(fig_folder)
-    dataset_path = "F:/ILSVRC"
     batch_size = 100
     dataset_info = load_and_preprocess_dataset(
-        'imagenet', batch_size=batch_size, path=dataset_path)
+        'imagenet', batch_size=batch_size, path=args.dataset_path)
     train_gen = dataset_info['train']
     val_gen = dataset_info['val']
     # TODO Implement test generator to compare values from train and val
