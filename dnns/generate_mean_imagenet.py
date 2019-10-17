@@ -91,8 +91,8 @@ if __name__ == "__main__":
              num_examples_val=res_dict_val['num_examples'],
 
              # number of examples see in the function compute_mean_img
-             empirical_num_classes=res_dict['empirical_num_classes'],
-             empirical_num_classes_val=res_dict_val['empirical_num_classes']
+             empirical_num_classes=res_dict['empirical_num_examples'],
+             empirical_num_classes_val=res_dict_val['empirical_num_examples']
              )
 
     fig = plt.figure(figsize=(8, 8), dpi=600)
