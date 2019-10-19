@@ -1,19 +1,12 @@
-import json
-
-from keras.callbacks import ModelCheckpoint
-
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from dnn_argparser import *
-from noisy_softplus import NoisySoftplus
 # Keras stuff
 import keras
 from keras.models import load_model
 from load_dataset import load_and_preprocess_dataset
 import numpy as np
-from keras_preprocessing.image import ImageDataGenerator
 from noisy_sgd import NoisySGD
-from noisy_softplus import NoisySoftplus
 from sparse_layer import Sparse, SparseConv2D, SparseDepthwiseConv2D
-
 from replace_dense_with_sparse import replace_dense_with_sparse
 from rewiring_callback import RewiringCallback
 # Import OS to deal with directories
@@ -21,7 +14,6 @@ import os
 import tensorflow as tf
 from keras import backend as K
 import pylab as plt
-
 from utilities import generate_filename
 
 start_time = plt.datetime.datetime.now()
@@ -152,6 +144,9 @@ if args.optimizer.lower() == "sgd":
 elif args.optimizer.lower() in ["ada", "adadelta"]:
     optimizer = keras.optimizers.adadelta()
     optimizer_name = "adadelta"
+elif args.optimizer.lower() in ["adam"]:
+    optimizer = keras.optimizers.adam()
+    optimizer_name = "adam"
 elif args.optimizer.lower() in ["noisy_sgd", "ns"]:
     # custom optimizer to include noise and temperature
     from noisy_sgd import NoisySGD
@@ -178,6 +173,26 @@ loss = keras.losses.categorical_crossentropy
 deep_r = RewiringCallback(fixed_conn=args.disable_rewiring,
                           soft_limit=args.soft_rewiring,
                           asserts_on=args.asserts_on)
+
+# Add LR reduction schedule based on Inception paper
+
+def lr_reduction_schedule(epoch, lr):
+    """
+    a function that takes an epoch index as input (integer, indexed from 0)
+    and current learning rate and
+    returns a new learning rate as output (float).
+    :param epoch: epoch index (indexed from 0)
+    :type epoch: int
+    :param lr: current learning rate
+    :type lr: float
+    :return: new learning rate
+    :rtype: float
+    """
+    if epoch % 7 == 0:
+        return lr * .96
+
+
+lr_schedule = LearningRateScheduler(lr_reduction_schedule, verbose=1)
 
 model.compile(
     optimizer=optimizer,
@@ -243,6 +258,7 @@ if args.tensorboard:
 
 callback_list.append(csv_logger)
 callback_list.append(checkpoint_callback)
+callback_list.append(lr_schedule)
 
 if not args.data_augmentation:
 
