@@ -57,6 +57,29 @@ if args.conn_decay:
 # disk or a reference to Keras Mobilenet (i.e. :mobilenet)
 _is_builtin_model = False
 
+
+# Add LR reduction schedule based on Inception paper
+
+def lr_reduction_schedule(epoch, lr):
+    """
+    a function that takes an epoch index as input (integer, indexed from 0)
+    and current learning rate and
+    returns a new learning rate as output (float).
+    :param epoch: epoch index (indexed from 0)
+    :type epoch: int
+    :param lr: current learning rate
+    :type lr: float
+    :return: new learning rate
+    :rtype: float
+    """
+    if epoch % 7 == 0:
+        return lr * .96
+
+
+if args.continue_from_epoch != 0:
+    for _previous_epochs in range(args.continue_from_epoch):
+        learning_rate = lr_reduction_schedule(_previous_epochs, learning_rate)
+
 if args.model[0] == ":":
     model_name = args.model[1:]
     _is_builtin_model = True
@@ -82,7 +105,6 @@ else:
              'NoisySGD': NoisySGD}
     # Retrieve model from disk
     model = load_model(args.model, custom_objects=c_obj)
-
 
 if args.sparse_layers and not args.soft_rewiring:
     if args.conn_decay:
@@ -150,6 +172,7 @@ elif args.optimizer.lower() in ["adam"]:
 elif args.optimizer.lower() in ["noisy_sgd", "ns"]:
     # custom optimizer to include noise and temperature
     from noisy_sgd import NoisySGD
+
     if learning_rate:
         optimizer = NoisySGD(lr=learning_rate)
     else:
@@ -173,24 +196,6 @@ loss = keras.losses.categorical_crossentropy
 deep_r = RewiringCallback(fixed_conn=args.disable_rewiring,
                           soft_limit=args.soft_rewiring,
                           asserts_on=args.asserts_on)
-
-# Add LR reduction schedule based on Inception paper
-
-def lr_reduction_schedule(epoch, lr):
-    """
-    a function that takes an epoch index as input (integer, indexed from 0)
-    and current learning rate and
-    returns a new learning rate as output (float).
-    :param epoch: epoch index (indexed from 0)
-    :type epoch: int
-    :param lr: current learning rate
-    :type lr: float
-    :return: new learning rate
-    :rtype: float
-    """
-    if epoch % 7 == 0:
-        return lr * .96
-
 
 lr_schedule = LearningRateScheduler(lr_reduction_schedule, verbose=1)
 
@@ -237,7 +242,7 @@ csv_path = os.path.join(args.result_dir, output_filename)
 csv_logger = keras.callbacks.CSVLogger(
     csv_path,
     separator=',',
-    append=False)
+    append=True)
 
 callback_list = []
 if args.sparse_layers:
@@ -272,7 +277,8 @@ if not args.data_augmentation:
                         shuffle=True,
                         max_queue_size=10,
                         use_multiprocessing=True,
-                        workers=1
+                        workers=1,
+                        initial_epoch=args.continue_from_epoch
                         )
 else:
     raise NotImplementedError("Data augmentation not currently supported for "

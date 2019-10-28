@@ -68,7 +68,7 @@ parser.add_argument('--epochs', type=int,
 # When passing epochs in like this, do we start counting from 0 or 1?
 # https://keras.io/models/sequential/ would suggest that the default is 0
 parser.add_argument('--continue_from_epoch', type=int,
-                    help='continue leraning from a checkpoint '
+                    help='continue learning from a checkpoint '
                          '(first epoch starts at 0)', default=0)
 
 

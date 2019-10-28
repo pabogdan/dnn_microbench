@@ -8,14 +8,15 @@ setup(
     license="GNU GPLv3.0",
     author='Petrut Antoniu Bogdan',
     author_email='petrut.bogdan@manchester.ac.uk',
-    description='Experiments with DNNs to make them amenable for transformation in SNNs',
+    description='Experiments with DNNs to make them amenable for '
+                'transformation to SNNs',
     # Requirements
     dependency_links=[],
 
     install_requires=["numpy",
                       "scipy",
                       "keras",
-                      "matplotlib"],
+                      "matplotlib", "tensorflow"],
     classifiers=[
         "Development Status :: 3 - Alpha",
 
