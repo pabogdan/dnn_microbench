@@ -37,10 +37,12 @@ if not os.path.isdir(args.model_dir) and not os.path.exists(args.model_dir):
     os.mkdir(args.model_dir)
 
 epochs = args.epochs or 10
+if args.continue_from_epoch:
+    epochs += args.continue_from_epoch
 # https://github.com/Zehaos/MobileNet/blob/master/train_image_classifier.py#L191-L192
 # batch = 32
 batch = args.batch or 32
-learning_rate = args.lr  # the default is None from argparser
+learning_rate = args.lr or 0.001  # the default is None from argparser
 decay_rate = 0.8  # changed from 0.8
 
 p_0 = args.conn_level or .10  # global connectivity level
@@ -74,18 +76,19 @@ def lr_reduction_schedule(epoch, lr):
     """
     if epoch % 7 == 0:
         return lr * .96
+    return lr
 
 
 if args.continue_from_epoch != 0:
     for _previous_epochs in range(args.continue_from_epoch):
-        learning_rate = lr_reduction_schedule(_previous_epochs, learning_rate)
+        learning_rate = lr_reduction_schedule(_previous_epochs, learning_rate) or learning_rate
 
 if args.model[0] == ":":
     model_name = args.model[1:]
     _is_builtin_model = True
 else:
     print("Continuing training on model", args.model)
-    model_name = "mobilenet_cont"
+    model_name = "mobilenet"
     # Based on the model name we could infer a re-starting epoch
     # TODO infer epoch number of saved model
 
