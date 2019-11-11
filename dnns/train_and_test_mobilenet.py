@@ -172,7 +172,9 @@ elif args.optimizer.lower() in ["ada", "adadelta"]:
     optimizer = keras.optimizers.adadelta()
     optimizer_name = "adadelta"
 elif args.optimizer.lower() in ["adam"]:
-    optimizer = keras.optimizers.adam(amsgrad=True)
+    optimizer = keras.optimizers.adam(
+        learning_rate=learning_rate,
+        amsgrad=True)
     optimizer_name = "adam"
 elif args.optimizer.lower() in ["noisy_sgd", "ns"]:
     # custom optimizer to include noise and temperature
