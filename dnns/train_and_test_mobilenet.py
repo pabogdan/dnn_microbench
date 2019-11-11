@@ -41,8 +41,10 @@ if args.continue_from_epoch:
     epochs += args.continue_from_epoch
 # https://github.com/Zehaos/MobileNet/blob/master/train_image_classifier.py#L191-L192
 # batch = 32
-batch = args.batch or 32
-learning_rate = args.lr or 0.001  # the default is None from argparser
+# Never mind. According to https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1_train.py
+# batch = 64
+batch = args.batch or 64
+learning_rate = args.lr or 1e-4 # the default is None from argparser
 decay_rate = 0.8  # changed from 0.8
 
 p_0 = args.conn_level or .10  # global connectivity level
@@ -170,7 +172,7 @@ elif args.optimizer.lower() in ["ada", "adadelta"]:
     optimizer = keras.optimizers.adadelta()
     optimizer_name = "adadelta"
 elif args.optimizer.lower() in ["adam"]:
-    optimizer = keras.optimizers.adam()
+    optimizer = keras.optimizers.adam(amsgrad=True)
     optimizer_name = "adam"
 elif args.optimizer.lower() in ["noisy_sgd", "ns"]:
     # custom optimizer to include noise and temperature
