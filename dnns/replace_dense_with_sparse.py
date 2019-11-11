@@ -38,7 +38,7 @@ def replace_dense_with_sparse(
         reg_coeffs=None,
         conn_decay=None,
         custom_object={},
-        no_cache=False, threshold=True):
+        no_cache=False, threshold=True, random_weights=True):
     '''
     Model is defined in Howard et al (2017)
     MobileNets: Efficient Convolutional Neural Networks for Mobile Vision
@@ -95,7 +95,9 @@ def replace_dense_with_sparse(
         # however, if threshold: only replace when above the mean connectivity
         curr_weights = layer.get_weights()
         if i == 0 and 'batch_input_shape' in layer_config:
-            model_input_shape = layer_config['batch_input_shape']
+            model_input_shape = list(layer_config['batch_input_shape'])
+            model_input_shape[0] = batch_size
+            model_input_shape = tuple(model_input_shape)
 
         if (builtin_sparsity and
                 ((threshold and len(curr_weights) > 0 and curr_weights[0].size > mean_no_conn)
@@ -113,9 +115,19 @@ def replace_dense_with_sparse(
                 curr_sparse_layer = Sparse(**layer_config)
 
         if curr_sparse_layer is not None:
-            sparse_model.add(curr_sparse_layer)
+            layer_to_add = curr_sparse_layer
         else:
-            sparse_model.add(layer)
+            layer_to_add = layer
+        # Check whether pre-trained or random weights are supposed to be used
+        if not random_weights and i != 0:
+            weights = layer_to_add.get_weights()
+            if len(weights) == 1:
+                curr_weights = np.asarray(curr_weights)
+                layer_to_add.set_weights(
+                    np.array([np.squeeze(curr_weights, axis=0)]))
+
+        sparse_model.add(layer_to_add)
+
     if builtin_sparsity:
         assert len(builtin_sparsity) == 0
     if conn_decay:
@@ -123,7 +135,7 @@ def replace_dense_with_sparse(
     print("Converted filename", converted_model_filename)
     with CustomObjectScope(custom_object):
         sparse_model.save(file_path)
-    fix_layer0(file_path, model_input_shape or [None, 224, 224, 3], 'float32')
+    fix_layer0(file_path, model_input_shape or [batch_size, 224, 224, 3], 'float32')
 
     K.clear_session()
 

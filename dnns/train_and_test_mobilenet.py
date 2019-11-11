@@ -44,7 +44,7 @@ if args.continue_from_epoch:
 # Never mind. According to https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet_v1_train.py
 # batch = 64
 batch = args.batch or 64
-learning_rate = args.lr or 1e-4 # the default is None from argparser
+learning_rate = args.lr or 1e-4  # the default is None from argparser
 decay_rate = 0.8  # changed from 0.8
 
 p_0 = args.conn_level or .10  # global connectivity level
@@ -119,19 +119,23 @@ if args.sparse_layers and not args.soft_rewiring:
             activation=args.activation, batch_size=batch,
             builtin_sparsity=builtin_sparsity,
             reg_coeffs=alphas,
-            conn_decay=conn_decay_values, no_cache=args.no_cache)
+            conn_decay=conn_decay_values, no_cache=args.no_cache,
+            random_weights=args.random_weights)
     else:
         model = replace_dense_with_sparse(
             model,
             activation=args.activation, batch_size=batch,
             builtin_sparsity=builtin_sparsity,
-            reg_coeffs=alphas, no_cache=args.no_cache)
+            reg_coeffs=alphas, no_cache=args.no_cache,
+            random_weights=args.random_weights)
 elif args.sparse_layers and args.soft_rewiring:
     print("Soft rewiring enabled", args.soft_rewiring)
     model = replace_dense_with_sparse(
         model,
         activation=args.activation, batch_size=batch,
-        reg_coeffs=alphas, no_cache=args.no_cache)
+        reg_coeffs=alphas, no_cache=args.no_cache,
+        random_weights=args.random_weights)
+
 model.summary()
 
 dataset_info = load_and_preprocess_dataset(
