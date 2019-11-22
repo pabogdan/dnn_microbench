@@ -1,63 +1,58 @@
-# Deep Neural Network (DNN) micro-benchmark
+# Keras Rewiring 
 
-This repository is concerned with the exploration of some neural network
-architectures to transform them into spiking models to be run on 
-the SpiNNaker neuromorphic platform. 
+This repository contains the necessary Keras components to perform 
+online rewiring during training. This implementation is based on the paper by 
+Guillaume Bellec, 
+David Kappel, 
+Wolfgang Maass and
+Robert Legenstein 
+["Deep Rewiring: Training very sparse deep networks"](http://arxiv.org/abs/1711.05136)
+at TU Graz, Austria. 
 
-They are trained and tested on different datasets using different 
-architrectures and components. The provided implementation uses keras and 
-tensorflow.
+Package components:
+
+- rewiring callback - actually performs the rewiring at the end of each batch
+- sparse layers - these are required because they contain a connectivity mask 
+(0 - connection missing, 1 - connections exists); this information is used by 
+the rewiring callback.
+  - Dense equivalent is called Sparse
+  - Conv2D equivalent is called SparseConv2D
+  - DepthwiseConv2D equivalent is called SparseDepthwiseConv2D
+- optimizers - dubbed NoisySGD, it is an extension of Stochastic Gradient 
+Descent (SGD) incorporating Gaussian, zero-meaned noise in 
+its error computation.
+- utilities - some utilities are present to convert networks using "dense" 
+ layers to "sparse" ones which the rewiring callback can interact with. In this
+ context, "dense" simply covers built-in Keras layers. An 
+ ImageNet generator is also provided.
+- experiment files - this is a research project, thus we require scripts that
+run our experimental setups. 
 
 
-## MNIST
+# Installation
 
-Architecture described by [Liu et al (2017)](https://arxiv.org/abs/1706.03609) 
-and, in more detail, [Liu (2018)](https://www.research.manchester.ac.uk/portal/en/theses/deep-spiking-neural-networks(336e6a37-2a0b-41ff-9ffb-cca897220d6c).html)
-
-A comparison is performed between the same network architecture using 3 
-different activation functions:
-
-1. ReLU
-2. Softplus
-3. Noisy Softplus [Liu et al (2017)](https://arxiv.org/abs/1706.03609)
-4. Logarithmic Data Representation [Miyashita et al (2016)](http://arxiv.org/abs/1603.01025)
-
-These models are implemented using keras.
-
-## CIFAR10 and CIFAR100
-
-Architecture described by [Howard et al (2017)](https://arxiv.org/abs/1704.04861)
-
-
-## Imagenet 2012
-
-Architecture described by [Howard et al (2017)](https://arxiv.org/abs/1704.04861)
-
-# How to use
-
-The package can be installed by running the following in your favourite python
-virtual environment:
+This package can be installed by running ONE of the following commands:
 
 `python setup.py develop`
 
-In `dnns`, running `mnist_dnn.py` will generate 3 keras models to be trained
-and tested. Importing it however will allow finer control over the models and
-can be used to bypass the need to save the `.h5` model representation to disk.
+or 
 
-In the same directory, `noisy_softplus.py` contains the definition for the 
-Noisy Softplus [Liu et al (2017)](https://arxiv.org/abs/1706.03609) activation
-function. `train_and_test_network.py` can be used to train and test given model
-on any of the aforementioned datasets. For example, the following will train
-and test a predefined model using the (default) parameters controlling the 
-number of epochs, batch size, optimizer to be used and the input dataset:
+`python setup.py install`
 
-`python train_and_test_network.py relu_mnist_liu2016.h5 
---result_filename <trained model filename>
---epochs 20
---batch 50
---optimizer sgd
---dataset mnist`
+or 
 
+`pip install .`
 
+TODO: make this package available through PyPi
+
+# How to use
+
+## For predefined networks 
+
+TODO
+
+## In your own networks
+
+TODO
 
 
