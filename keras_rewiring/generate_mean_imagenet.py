@@ -1,8 +1,8 @@
-from dnns.utilities import *
+from keras_rewiring.utilities import *
 import numpy as np
 import matplotlib as mlib
 import matplotlib.pyplot as plt
-from dnns.load_dataset import load_and_preprocess_dataset
+from keras_rewiring.load_dataset import load_and_preprocess_dataset
 
 # ensure we use the same rc parameters for all matplotlib outputs
 mlib.rcParams.update({'font.size': 22})
