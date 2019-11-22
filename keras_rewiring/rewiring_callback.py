@@ -58,11 +58,6 @@ class RewiringCallback(Callback):
             for k, m, l, i in zip(self.post_kernels, self.post_masks, self.layers,
                                   np.arange(len(self.layers))):
                 # If you invert the mask, are all those entries in kernel == 0?
-                # if l.connectivity_level:
-                #     assert np.all(k[~m.astype(bool)] == 0)
-                # x = K.get_value(l.original_kernel)
-                # assert np.all(x[~m.astype(bool)] == 0) or x[~m.astype(bool)].size == 0
-                # check that the connectivity is at the correct level
                 assumed_prop = np.sum(m) / float(m.size)
 
                 conn_prop = l.connectivity_level
@@ -88,8 +83,9 @@ class RewiringCallback(Callback):
             post_sign = np.sign(post_k)
 
             # retrieve indices of synapses which require rewiring
-            # save them in a variable and apply the mask (only rewire active conns)
-            masked_sign_diff = (pre_sign * post_sign)*post_m
+            # save them in a variable and apply the mask
+            # (only rewire active conns)
+            masked_sign_diff = (pre_sign * post_sign) * post_m
             need_rewiring = np.where(masked_sign_diff < 0)
 
             # update the mask by selecting other synapses to be active
@@ -129,9 +125,6 @@ class RewiringCallback(Callback):
             new_m[chosen_partners] = 1
             # enable the new connections
             K.set_value(l.mask, new_m)
-            # update original kernel
-            # post_k = post_k * new_m
-            # K.set_value(l.original_kernel, post_k)
             if self.soft_limit:
                 # masked pre inactive (dormant) connections
                 masked_pres = post_post_k * (~rew_candidates_mask)
@@ -140,7 +133,6 @@ class RewiringCallback(Callback):
                 # add to masked post actives
                 masked_posts = post_k * (rew_candidates_mask)
                 K.set_value(l.original_kernel, masked_pres + masked_posts)
-
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
@@ -184,7 +176,7 @@ class RewiringCallback(Callback):
                     chosen_partners = tuple(choices)
                     m[chosen_partners] = 0
                     K.set_value(l.mask, m)
-        global_conn_lvl = total_num_active_conns/float(total_num_of_conns)
+        global_conn_lvl = total_num_active_conns / float(total_num_of_conns)
         print("Total stats: {:8} active connections, corresponding to {:>5.1%} "
               "of total connectivity".format(
             total_num_active_conns,

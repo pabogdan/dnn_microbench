@@ -1,13 +1,11 @@
 import os
 import keras
 from keras.models import Sequential
-from keras.layers import Dense, Activation, \
-    Conv2D, AveragePooling2D, Flatten, DepthwiseConv2D
+from keras.layers import Dense, Conv2D
 from keras.utils import CustomObjectScope
-
-from noisy_sgd import NoisySGD
-from noisy_softplus import NoisySoftplus
-from sparse_layer import Sparse, SparseConv2D, SparseDepthwiseConv2D
+from keras_rewiring.optimizers.noisy_sgd import NoisySGD
+from keras_rewiring.sparse_layer import \
+    Sparse, SparseConv2D, SparseDepthwiseConv2D
 from keras.models import load_model
 from keras import backend as K
 import ntpath

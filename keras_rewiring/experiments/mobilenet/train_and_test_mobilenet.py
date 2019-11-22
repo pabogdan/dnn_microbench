@@ -1,20 +1,21 @@
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
-from dnn_argparser import *
+from keras_rewiring.experiments.dnn_argparser import *
 # Keras stuff
 import keras
 from keras.models import load_model
-from load_dataset import load_and_preprocess_dataset
+from keras_rewiring.utilities.load_dataset import load_and_preprocess_dataset
 import numpy as np
-from noisy_sgd import NoisySGD
-from sparse_layer import Sparse, SparseConv2D, SparseDepthwiseConv2D
-from replace_dense_with_sparse import replace_dense_with_sparse
-from rewiring_callback import RewiringCallback
+from keras_rewiring.sparse_layer import Sparse, SparseConv2D, SparseDepthwiseConv2D
+from keras_rewiring.utilities.replace_dense_with_sparse import replace_dense_with_sparse
+from keras_rewiring.rewiring_callback import RewiringCallback
 # Import OS to deal with directories
 import os
 import tensorflow as tf
 from keras import backend as K
 import pylab as plt
-from utilities import generate_filename
+from keras_rewiring.utilities.imagenet_utils import generate_filename
+# custom optimizer to include noise and temperature
+from keras_rewiring.optimizers.noisy_sgd import NoisySGD
 
 start_time = plt.datetime.datetime.now()
 # Get number of cores reserved by the batch system
@@ -181,9 +182,6 @@ elif args.optimizer.lower() in ["adam"]:
         amsgrad=True)
     optimizer_name = "adam"
 elif args.optimizer.lower() in ["noisy_sgd", "ns"]:
-    # custom optimizer to include noise and temperature
-    from noisy_sgd import NoisySGD
-
     if learning_rate:
         optimizer = NoisySGD(lr=learning_rate)
     else:
