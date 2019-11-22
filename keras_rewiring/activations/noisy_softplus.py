@@ -2,8 +2,9 @@ import keras
 
 
 class NoisySoftplus():
-    ''' The Noisy Softplus activation function
-        Values of k and sigma taken from Liu et al. 2017
+    '''
+    The Noisy Softplus activation function
+    Values of k and sigma taken from Liu et al. 2017
 
     Noisy Softplus fits well to the practical response
     firing rate of the LIF neuron

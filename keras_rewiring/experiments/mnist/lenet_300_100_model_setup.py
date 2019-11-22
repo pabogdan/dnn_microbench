@@ -8,8 +8,8 @@ from keras_rewiring.sparse_layer import Sparse
 
 def generate_lenet_300_100_model(activation='relu', categorical_output=True):
     '''
-    Model is defined in Liu et al 2016
-    Noisy Softplus : A Biology Inspired Activation Function
+    Model is defined in LeCun et al. 1998
+    Gradient-Based Learning Applied to Document Recognition
     :return: the architecture of the network
     :rtype: keras.models.Sequential
     '''
@@ -56,8 +56,8 @@ def generate_sparse_lenet_300_100_model(activation='relu',
                                         builtin_sparsity=None,
                                         conn_decay=None):
     '''
-    Model is defined in Liu et al 2016
-    Noisy Softplus : A Biology Inspired Activation Function
+    Model is defined in LeCun et al. 1998
+    Gradient-Based Learning Applied to Document Recognition
     :return: the architecture of the network
     :rtype: keras.models.Sequential
     '''

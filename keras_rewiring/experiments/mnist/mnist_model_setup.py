@@ -1,9 +1,9 @@
 import keras
 from keras.models import Sequential
-from keras.layers import Dense, Activation, \
+from keras.layers import Dense, \
     Conv2D, AveragePooling2D, Flatten
 from keras.utils import CustomObjectScope
-from noisy_softplus import NoisySoftplus
+from keras_rewiring.activations.noisy_softplus import NoisySoftplus
 
 
 def generate_mnist_model(activation='relu', categorical_output=True):
