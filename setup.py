@@ -1,22 +1,23 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='dnn_microbench',
+    name='keras_rewiring',
     version='0.0.1',
     packages=find_packages(),
-    url='https://github.com/pabogdan/dnn_microbench',
+    url='https://github.com/pabogdan/keras_rewiring',
     license="GNU GPLv3.0",
     author='Petrut Antoniu Bogdan',
     author_email='petrut.bogdan@manchester.ac.uk',
-    description='Experiments with DNNs to make them amenable for '
-                'transformation to SNNs',
+    description='Experiments with rewiring in Keras-defined DNNs',
     # Requirements
     dependency_links=[],
 
     install_requires=["numpy",
                       "scipy",
                       "keras",
-                      "matplotlib", "tensorflow"],
+                      "matplotlib",
+                      "tensorflow"],
+
     classifiers=[
         "Development Status :: 3 - Alpha",
 
