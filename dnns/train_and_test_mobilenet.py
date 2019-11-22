@@ -208,7 +208,8 @@ deep_r = RewiringCallback(fixed_conn=args.disable_rewiring,
                           soft_limit=args.soft_rewiring,
                           asserts_on=args.asserts_on)
 
-lr_schedule = LearningRateScheduler(lr_reduction_schedule, verbose=1)
+lr_schedule = LearningRateScheduler(lr_reduction_schedule,
+                                    verbose=args.verbose)
 
 model.compile(
     optimizer=optimizer,
@@ -281,7 +282,7 @@ if not args.data_augmentation:
     model.fit_generator(train_gen,
                         steps_per_epoch=steps_per_epoch,
                         epochs=epochs,
-                        verbose=1,
+                        verbose=args.verbose,
                         callbacks=callback_list,
                         validation_data=val_gen,
                         validation_steps=validation_steps_per_epoch,
@@ -303,7 +304,7 @@ print("Total time elapsed -- " + str(total_time))
 score = model.evaluate_generator(val_gen,
                                  steps=validation_steps_per_epoch,
                                  max_queue_size=5,
-                                 verbose=1)
+                                 verbose=args.verbose)
 print('Test Loss:', score[0])
 print('Test Accuracy:', score[1])
 

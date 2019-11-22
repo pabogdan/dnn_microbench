@@ -27,6 +27,10 @@ parser.add_argument('--sparse_layers',
                     help='Use sparse layers',
                     action="store_true")
 
+parser.add_argument('--verbose',
+                    help='Verbose logging',
+                    action="store_true")
+
 parser.add_argument('--random_weights',
                     help='randomly initialise model weights',
                     action="store_true")
