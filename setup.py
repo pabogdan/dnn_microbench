@@ -16,11 +16,10 @@ setup(
                       "scipy",
                       "keras",
                       "matplotlib",
-                      "tensorflow"],
+                      "tensorflow",
+                      "argparse"],
 
     classifiers=[
-        "Development Status :: 3 - Alpha",
-
         "Intended Audience :: Science/Research",
 
         "Operating System :: POSIX :: Linux",
