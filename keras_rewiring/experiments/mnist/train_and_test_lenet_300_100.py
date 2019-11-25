@@ -202,7 +202,7 @@ model_path = os.path.join(
     args.model_dir,
     "trained_model_of_" + model_name + "_" + activation_name +
     "_" + loss_name +
-    "_" + optimizer_name + suffix)
+    "_" + optimizer_name + suffix + ".h5")
 
 model.save(model_path)
 
