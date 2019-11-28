@@ -1,41 +1,17 @@
-from keras_rewiring.experiments.dnn_argparser import *
-# Keras stuff
-import keras
-from keras.models import load_model
-from keras_rewiring.utilities.load_dataset import load_and_preprocess_dataset
-import numpy as np
 from keras_preprocessing.image import ImageDataGenerator
-from keras_rewiring.rewiring_callback import RewiringCallback
-# Import OS to deal with directories
-import os
+
+from keras_rewiring.experiments.common import *
 # network generation imports
 from keras_rewiring.experiments.cifar10.cifar_tf_tutorial_model_setup import \
     generate_cifar_tf_tutorial_model, \
     generate_sparse_cifar_tf_tutorial_model
-from keras_rewiring.optimizers.noisy_sgd import NoisySGD
-import tensorflow as tf
-from keras import backend as K
-import pylab as plt
 
 start_time = plt.datetime.datetime.now()
-# Get number of cores reserved by the batch system
-# (NSLOTS is automatically set, or use 4 otherwise)
-NUMCORES = int(os.getenv("NSLOTS", 4))
-print("Using", NUMCORES, "core(s)")
+# Setting number of CPUs to use
+set_nslots()
 
-# Create TF session using correct number of cores
-sess = tf.Session(config=tf.ConfigProto(inter_op_parallelism_threads=NUMCORES,
-                                        intra_op_parallelism_threads=NUMCORES, allow_soft_placement=True,
-                                        device_count={'CPU': NUMCORES}))
-
-# Set the Keras TF session
-K.set_session(sess)
-
-# Checking directory structure exists
-if not os.path.isdir(args.result_dir) and not os.path.exists(args.result_dir):
-    os.mkdir(args.result_dir)
-if not os.path.isdir(args.model_dir) and not os.path.exists(args.model_dir):
-    os.mkdir(args.model_dir)
+# Setting up directory structure
+setup_directory_structure()
 
 dataset_info = load_and_preprocess_dataset(
     'cifar10')
@@ -51,26 +27,8 @@ batch = args.batch or 128
 learning_rate = 0.5
 decay_rate = 0.8  # changed from 0.8
 
-if args.optimizer.lower() == "sgd":
-    if not args.sparse_layers:
-        optimizer = keras.optimizers.SGD()
-    else:
-        optimizer = keras.optimizers.SGD(lr=learning_rate)
-    optimizer_name = "sgd"
-
-elif args.optimizer.lower() in ["ada", "adadelta"]:
-    optimizer = keras.optimizers.adadelta()
-    optimizer_name = "adadelta"
-elif args.optimizer.lower() in ["noisy_sgd", "ns"]:
-    # custom optimizer to include noise and temperature
-    if not args.sparse_layers:
-        optimizer = NoisySGD()
-    else:
-        optimizer = NoisySGD(lr=learning_rate)
-    optimizer_name = "noisy_sgd"
-else:
-    optimizer = args.optimizer
-    optimizer_name = args.optimizer
+# Retrieve optimizer and its name (for files and reports)
+optimizer, optimizer_name = extract_optimizer_from_args(learning_rate)
 
 loss = keras.losses.categorical_crossentropy
 

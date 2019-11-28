@@ -11,6 +11,7 @@ import ntpath
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
+
 def path_leaf(path):
     head, tail = ntpath.split(path)
     return tail or ntpath.basename(head)
@@ -214,23 +215,6 @@ class ImagenetDataGenerator(object):
 
                 _index += self.batch
                 yield (np.asarray(images_to_yield), np.asarray(labels_to_yield))
-
-
-def generate_filename(optimizer, activation,
-                      sparse, loss, suffix, random_weights, acronym=False):
-    _combined_string = ""
-    rand_weights = "_rand" if random_weights else ""
-    if not acronym:
-        _combined_string += "_" + activation
-        _combined_string += "_" + loss
-        _combined_string += "_" + sparse
-        _combined_string += "_" + optimizer + rand_weights + suffix
-    else:
-        _combined_string += activation[0]
-        _combined_string += loss[0]
-        _combined_string += "_" + sparse
-        _combined_string += "_" + optimizer[0] + rand_weights + suffix
-    return _combined_string
 
 
 if __name__ == "__main__":
