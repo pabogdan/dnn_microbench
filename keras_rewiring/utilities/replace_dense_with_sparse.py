@@ -36,7 +36,8 @@ def replace_dense_with_sparse(
         reg_coeffs=None,
         conn_decay=None,
         custom_object={},
-        no_cache=False, threshold=True, random_weights=True):
+        no_cache=False, threshold=True, random_weights=True,
+        freeze_weight=False):
     '''
     Model is defined in Howard et al (2017)
     MobileNets: Efficient Convolutional Neural Networks for Mobile Vision
@@ -83,10 +84,14 @@ def replace_dense_with_sparse(
 
     model_input_shape = None
 
+    print("=" * 60)
+    print("Sparsifying layers")
+    print("-" * 60)
     for i, layer in enumerate(model.layers):
         # get layer configuration
         layer_config = layer.get_config()
         # modify layer name
+        print("{:30}".format("Processing layer"), layer_config['name'])
         layer_config['name'] = "sparse_" + layer_config['name']
         # replace with the appropriate sparse layer
         curr_sparse_layer = None
@@ -114,16 +119,23 @@ def replace_dense_with_sparse(
 
         if curr_sparse_layer is not None:
             layer_to_add = curr_sparse_layer
+            sparsified_layer = True
         else:
             layer_to_add = layer
-        # Check whether pre-trained or random weights are supposed to be used
+            sparsified_layer = False
+            # Check whether pre-trained or random weights are supposed to be used
         if not random_weights and i != 0:
             weights = layer_to_add.get_weights()
             if len(weights) == 1:
                 curr_weights = np.asarray(curr_weights)
                 layer_to_add.set_weights(
                     np.array([np.squeeze(curr_weights, axis=0)]))
-
+        freezing = (not sparsified_layer) and freeze_weight
+        print("\t{:26}".format("random weights"), random_weights)
+        print("\t{:26}".format("sparsified"), sparsified_layer)
+        print("\t{:26}".format("frozen weights"), freezing)
+        print("-" * 60)
+        layer_to_add.trainable = freezing
         sparse_model.add(layer_to_add)
 
     if builtin_sparsity:
