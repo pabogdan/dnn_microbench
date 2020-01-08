@@ -14,9 +14,9 @@ setup(
 
     install_requires=["numpy",
                       "scipy",
-                      "keras",
+                      "keras==2.2.4",
                       "matplotlib",
-                      "tensorflow",
+                      "tensorflow==1.13.1",
                       "argparse"],
 
     classifiers=[
