@@ -4,3 +4,4 @@ keras
 matplotlib
 tensorflow
 argparse
+pillow

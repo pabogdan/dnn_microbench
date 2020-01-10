@@ -17,7 +17,8 @@ setup(
                       "keras==2.2.4",
                       "matplotlib",
                       "tensorflow==1.13.1",
-                      "argparse"],
+                      "argparse",
+                      "pillow"],
 
     classifiers=[
         "Intended Audience :: Science/Research",
