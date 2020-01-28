@@ -16,7 +16,7 @@ setup(
                       "scipy",
                       "keras==2.2.4",
                       "matplotlib",
-                      "tensorflow==1.13.1",
+                      "tensorflow==1.15.2",
                       "argparse",
                       "pillow"],
 
