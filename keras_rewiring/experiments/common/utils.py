@@ -23,13 +23,13 @@ def reports():
     print("=" * 60)
     print("Platform reports")
     print("-" * 60)
-    print("{:30}:".format("Running on"), sys.platform)
-    print("{:30}:".format("aka. os.name"), os.name)
+    print("1.{:30}:".format("Running on"), sys.platform)
+    print("2.{:30}:".format("aka. os.name"), os.name)
     import psutil
     mem = psutil.virtual_memory()
     gb_norm = 1024**3
-    print("{:30}:{:8.2f} GB".format("Total RAM", mem.total/gb_norm))
-    print("{:30}:{:8.2f} GB".format("Available RAM", mem.available/gb_norm))
+    print("3.{:30}:{:8.2f} GB".format("Total RAM", mem.total/gb_norm))
+    print("4.{:30}:{:8.2f} GB".format("Available RAM", mem.available/gb_norm))
 
 
 def setup_directory_structure():
@@ -41,7 +41,7 @@ def setup_directory_structure():
 
 
 def extract_optimizer_from_args(learning_rate=None):
-    learning_rate = learning_rate or args.lr
+    learning_rate = args.lr or learning_rate
     if args.optimizer.lower() == "sgd":
         if learning_rate:
             optimizer = keras.optimizers.SGD(lr=learning_rate)
