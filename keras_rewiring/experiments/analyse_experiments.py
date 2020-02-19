@@ -33,6 +33,9 @@ def color_for_index(index, size, cmap=viridis_cmap):
     return cmap(1 / (size - index + 2))
 
 def analyse_experiment(in_file, results_dir):
+    print("=" * 80)
+    print("Processing ", in_file)
+    print("-" * 80)
     # Check if the folders exist
     if not os.path.isdir(results_dir) and not os.path.exists(results_dir):
         os.mkdir(results_dir)
@@ -44,6 +47,7 @@ def analyse_experiment(in_file, results_dir):
         csv_analysis(in_file, results_dir)
     elif ext in ["hdf5, hd5"]:
         raise NotImplementedError("hdf5 files not support at the moment")
+    print("=" * 80)
 
 
 def plot_single(data, filename, xlabel, ylabel, labels, results_dir,
@@ -111,14 +115,19 @@ if __name__ == "__main__":
             not analysis_args.compare):
         # Generate results for individual files
         for in_file in analysis_args.input:
-            print("="*80)
-            print("Processing ", in_file)
-            print("-"*80)
             analyse_experiment(in_file, analysis_args.results_dir)
-            print("="*80)
     elif (analysis_args.input and len(analysis_args.input) > 0 and
             analysis_args.compare):
         # Generate comparison results for files
         pass
-    else:
-        pass
+    mnist_static_results = "mnist/results/"
+    mnet_static_results = "mobilenet/results/"
+    cifar_static_results = "cifar10/results/"
+    roots_bloody_roots = [mnist_static_results, cifar_static_results, mnet_static_results]
+    for root_dir in roots_bloody_roots:
+        for file in os.listdir(root_dir):
+            try:
+                analyse_experiment(os.path.join(root_dir, file),
+                                   analysis_args.results_dir)
+            except Exception as e:
+                traceback.print_exc()
