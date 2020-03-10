@@ -12,7 +12,6 @@ def train_and_test_mobilenet():
     # Print some reports
     reports()
 
-
     epochs = args.epochs or 10
     if args.continue_from_epoch:
         epochs += args.continue_from_epoch
@@ -22,7 +21,6 @@ def train_and_test_mobilenet():
     # batch = 64
     batch = args.batch or 64
     learning_rate = args.lr or 1e-4  # the default is None from argparser
-    decay_rate = 0.8  # changed from 0.8
 
     p_0 = args.conn_level or .10  # global connectivity level
     print("Flat connectivity level", p_0)
@@ -37,7 +35,6 @@ def train_and_test_mobilenet():
     # Check whether the model that has been provided to argparser is .hdf5 / .h5 on
     # disk or a reference to Keras Mobilenet (i.e. :mobilenet)
     _is_builtin_model = False
-
 
     # Add LR reduction schedule based on Inception paper
 
@@ -56,7 +53,6 @@ def train_and_test_mobilenet():
         if epoch % 7 == 0:
             return lr * .96
         return lr
-
 
     if args.continue_from_epoch != 0:
         for _previous_epochs in range(args.continue_from_epoch):
@@ -125,7 +121,6 @@ def train_and_test_mobilenet():
     num_classes = dataset_info['num_classes']
     no_train = dataset_info['no_train']
     no_val = dataset_info['no_val']
-
 
     # set up steps_per_epoch
     steps_per_epoch = args.steps_per_epoch or no_train // batch
@@ -211,6 +206,9 @@ def train_and_test_mobilenet():
     callback_list.append(csv_logger)
     callback_list.append(checkpoint_callback)
     callback_list.append(lr_schedule)
+
+    # record weight information before learning
+    weights_from_model(model)
 
     if not args.data_augmentation:
 
