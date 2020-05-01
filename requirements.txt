@@ -5,3 +5,5 @@ matplotlib
 tensorflow
 argparse
 pillow
+statsmodel
+colorama

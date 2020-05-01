@@ -18,7 +18,9 @@ setup(
                       "matplotlib",
                       "tensorflow==1.15.2",
                       "argparse",
-                      "pillow"],
+                      "pillow",
+                      "statsmodel",
+                      "colorama"],
 
     classifiers=[
         "Intended Audience :: Science/Research",
