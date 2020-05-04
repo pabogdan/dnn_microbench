@@ -104,6 +104,7 @@ def generate_sparse_lenet_300_100_model(activation='relu',
                      # consume the last entry in builtin_sparsity
                      connectivity_level=builtin_sparsity.pop(0) or None,
                      connectivity_decay=conn_decay.pop(0) or None,
+                     kernel_constraint=keras.constraints.NonNeg(),
                      activation='softmax'))
 
     assert len(builtin_sparsity) == 0
