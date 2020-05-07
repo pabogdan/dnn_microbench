@@ -43,7 +43,8 @@ def generate_lenet_300_100_model(activation='relu', categorical_output=True):
     # Fully-connected (FC) layer
     model.add(Flatten())
     if categorical_output:
-        model.add(Dense(10, activation='softmax'))
+        model.add(Dense(10, activation='softmax',
+                        kernel_constraint=keras.constraints.NonNeg()))
     else:
         model.add(Dense(1))
 
