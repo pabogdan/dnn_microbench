@@ -113,12 +113,13 @@ def train_and_test_lenet_300_100():
 
         tb = keras.callbacks.TensorBoard(
             log_dir=tb_log_filename,
-            histogram_freq=0,  # turning this on needs validation_data in model.fit
+            histogram_freq=1,  # turning this on needs validation_data in model.fit
             batch_size=batch, write_graph=True,
             write_grads=True, write_images=True,
             embeddings_freq=0, embeddings_layer_names=None,
             embeddings_metadata=None, embeddings_data=None,
-            update_freq='epoch')
+            update_freq='epoch',
+            profile_batch='500,520')
         callback_list.append(tb)
 
     callback_list.append(csv_logger)

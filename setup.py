@@ -14,9 +14,9 @@ setup(
 
     install_requires=["numpy",
                       "scipy",
-                      "keras==2.2.4",
+                      "keras<=2.3.1",
                       "matplotlib",
-                      "tensorflow==1.15.2",
+                      "tensorflow<=2.2.1",
                       "argparse",
                       "pillow",
                       "statsmodel",
@@ -29,9 +29,10 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS",
 
-        "Programming Language :: Python :: 3"
-        "Programming Language :: Python :: 3.6"
-        "Programming Language :: Python :: 3.7"
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         
         "Topic :: Scientific/Engineering",
     ]

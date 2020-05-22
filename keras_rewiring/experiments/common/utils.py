@@ -10,13 +10,13 @@ def set_nslots():
     print("-" * 60)
 
     # Create TF session using correct number of cores
-    sess = tf.Session(config=tf.ConfigProto(inter_op_parallelism_threads=NUMCORES,
+    sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(inter_op_parallelism_threads=NUMCORES,
                                             intra_op_parallelism_threads=NUMCORES,
                                             allow_soft_placement=True,
                                             device_count={'CPU': NUMCORES}))
 
     # Set the Keras TF session
-    K.set_session(sess)
+    tf.compat.v1.keras.backend.set_session(sess)
 
 
 def reports():

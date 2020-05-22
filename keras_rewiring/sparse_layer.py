@@ -4,6 +4,7 @@ from keras.engine.topology import Layer
 import numpy as np
 import keras
 import tensorflow as tf
+import keras.backend as K
 from keras.utils import conv_utils
 
 
@@ -59,8 +60,6 @@ class Sparse(Layer):
         else:
             self.bias = None
 
-        # self.sign = K.variable(np.sign(K.get_value(self.kernel)),
-        #                        name='sign')
         # Set the correct initial values here
         # use K.set_value(x, value)
         total_number_of_matrix_entries = np.prod(self.kernel_shape)
@@ -73,18 +72,25 @@ class Sparse(Layer):
         np.random.shuffle(_pre_mask)
         _pre_mask = _pre_mask.astype(bool).reshape(self.kernel_shape).astype(float)
         # set this as the mask
-        # K.set_value(self.mask, _pre_mask)
-        # self.mask = K.variable(_pre_mask, name="mask")
         self.mask = self.add_weight(shape=_pre_mask.shape,
                                     initializer=initializers.constant(_pre_mask),
                                     name='mask',
                                     trainable=False)
+        # self.mask = K.variable(_pre_mask,
+        #                        dtype=tf.bool,
+        #                        name='mask',
+        #                        constraint=None)
+        # self._non_trainable_weights.append(self.mask)
+        #
+        # x = tf.sparse.from_dense(self.mask)
 
+        # tf.convert_to_tensor(mask_np, dtype=tf.bool)
         # keep track of TF Variable (weights)
         self.original_kernel = self.kernel
 
         # apply mask
         self.kernel = self.kernel * self.mask
+        # self.kernel = tf.boolean_mask(self.kernel, self.mask)
 
         if self.connectivity_level:
             self.add_update(updates=K.update(self.original_kernel, self.kernel))
