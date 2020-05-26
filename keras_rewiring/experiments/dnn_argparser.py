@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(
     description='DNN argparser',
     formatter_class=argparse.RawTextHelpFormatter)
 
-parser.add_argument('model', type=str,
+parser.add_argument('model', type=str, nargs="+",
                     help='network architecture / model to train and test')
 
 parser.add_argument('--dataset_path', type=str,
@@ -121,5 +121,9 @@ parser.add_argument('--result_dir', type=str,
                     help='directory inp which to load and '
                          'store network architectures',
                     default=DEFAULT_RESULT_DIR)
+
+parser.add_argument('--just_test',
+                    help='just test model',
+                    action="store_true")
 
 args = parser.parse_args()

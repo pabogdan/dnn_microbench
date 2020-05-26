@@ -26,9 +26,9 @@ def load_and_preprocess_dataset(dataset_name, categorical_output=True,
         x_test = x_test.astype('float32')
         x_train /= 255
         x_test /= 255
-        print('x_train shape:', x_train.shape)
-        print(x_train.shape[0], 'train samples')
-        print(x_test.shape[0], 'test samples')
+        # print('x_train shape:', x_train.shape)
+        # print(x_train.shape[0], 'train samples')
+        # print(x_test.shape[0], 'test samples')
 
     elif dataset_name.lower() == "cifar10":
         # input image dimensions

@@ -1,3 +1,4 @@
+import ntpath
 from keras_rewiring.experiments.common import *
 # network generation imports
 from keras_rewiring.experiments.mnist.lenet_300_100_model_setup import \
@@ -5,7 +6,8 @@ from keras_rewiring.experiments.mnist.lenet_300_100_model_setup import \
     generate_sparse_lenet_300_100_model
 
 
-def train_and_test_lenet_300_100():
+def train_and_test_lenet_300_100(filename):
+    print(filename)
     start_time = plt.datetime.datetime.now()
     # Setting number of CPUs to use
     set_nslots()
@@ -80,10 +82,10 @@ def train_and_test_lenet_300_100():
     if args.suffix:
         suffix = "_" + args.suffix
 
-    if args.model[0] == ":":
-        model_name = args.model[1:]
+    if filename[0] == ":":
+        model_name = filename[1:]
     else:
-        model_name = args.model
+        model_name = filename
 
     activation_name = "relu"
     loss_name = "crossent"
@@ -150,5 +152,69 @@ def train_and_test_lenet_300_100():
     print("Total time elapsed -- " + str(total_time))
 
 
+def test_lenet_300_100(filename, no_runs):
+    print(i)
+    dataset_info = load_and_preprocess_dataset(
+        'mnist', categorical_output=True)
+    x_test, y_test = dataset_info['test']
+    x_test = x_test.reshape(x_test.shape[0], 1, np.prod(x_test.shape[1:]))
+    batch = 10
+    # Reinstantiate the model
+    c_obj = {'Sparse': Sparse,
+             'SparseConv2D': SparseConv2D,
+             'SparseDepthwiseConv2D': SparseDepthwiseConv2D,
+             'NoisySGD': NoisySGD}
+    model = keras.models.load_model(filename, custom_objects=c_obj)
+
+    print("no runs", no_runs)
+    times = np.zeros(no_runs)
+    for ni in range(no_runs):
+        tb_log_filename = "./inference_logs"
+        callback_list = []
+        if args.tensorboard:
+            tb = keras.callbacks.TensorBoard(
+                log_dir=tb_log_filename,
+                batch_size=batch, write_graph=True,
+                write_images=True,  histogram_freq=0,
+                embeddings_freq=0, embeddings_layer_names=None,
+                embeddings_metadata=None, embeddings_data=None,
+                update_freq='epoch',
+                profile_batch=50)
+            callback_list = [tb]
+
+        start_time = plt.datetime.datetime.now()
+        score = model.evaluate(x_test, y_test, verbose=0, batch_size=batch,
+                               callbacks=callback_list)
+        end_time = plt.datetime.datetime.now()
+        total_time = end_time - start_time
+        times[ni] = total_time.total_seconds()
+    # print('Test Loss:', score[0])
+    # print('Test Accuracy:', score[1])
+    # print("Total time elapsed -- " + str(total_time))
+    print("mean time", np.mean(times))
+    print("std time", np.std(times))
+    base_name_file = str(ntpath.basename(filename))[:-3]
+    csv_path = os.path.join(args.result_dir, "times_for_" + base_name_file + ".csv")
+    np.savetxt(csv_path, times, delimiter=",")
+
+    f = plt.figure(1, figsize=(9, 9), dpi=400)
+    plt.hist(times, bins=20,
+             rasterized=True,
+             edgecolor='k')
+
+    plt.ylabel("Count")
+    plt.xlabel("Inference duration (seconds)")
+    plt.tight_layout()
+    plt.savefig(os.path.join(args.result_dir,
+                             "hist_times_for_" + base_name_file + ".png"))
+    plt.close(f)
+    return times
+
+
 if __name__ == "__main__":
-    train_and_test_lenet_300_100()
+    for i in args.model:
+        if args.just_test:
+            no_runs = 10
+            t = test_lenet_300_100(i, no_runs)
+        else:
+            train_and_test_lenet_300_100(i)
