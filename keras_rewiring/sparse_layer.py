@@ -1,11 +1,9 @@
-from keras import backend as K, activations, initializers, regularizers, constraints
-from keras.engine import InputSpec
-from keras.layers import Layer
+import tensorflow.keras as keras
+from tensorflow.keras import backend as K, activations, initializers, regularizers, constraints
+from tensorflow.keras.layers import Layer, InputSpec
 import numpy as np
-import keras
 import tensorflow as tf
-import keras.backend as K
-from keras.utils import conv_utils
+import tensorflow.keras.backend as K
 
 
 class Sparse(Layer):
