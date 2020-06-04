@@ -4,7 +4,7 @@ from tensorflow.keras.layers import Layer, InputSpec
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras.backend as K
-
+from keras.utils import conv_utils #There is probably a tf equivalent that I have yet to find
 
 class Sparse(Layer):
 
