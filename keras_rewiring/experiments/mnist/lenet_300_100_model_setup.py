@@ -6,7 +6,8 @@ from keras_rewiring.activations.noisy_softplus import NoisySoftplus
 from keras_rewiring.sparse_layer import Sparse
 
 
-def generate_lenet_300_100_model(activation='relu', categorical_output=True):
+def generate_lenet_300_100_model(activation='relu', categorical_output=True,
+                                 num_classes=10):
     '''
     Model is defined in LeCun et al. 1998
     Gradient-Based Learning Applied to Document Recognition
@@ -42,11 +43,8 @@ def generate_lenet_300_100_model(activation='relu', categorical_output=True):
 
     # Fully-connected (FC) layer
     model.add(Flatten())
-    if categorical_output:
-        model.add(Dense(10, activation='softmax',
-                        kernel_constraint=keras.constraints.NonNeg()))
-    else:
-        model.add(Dense(1))
+    model.add(Dense(num_classes, activation='softmax',
+                    kernel_constraint=keras.constraints.NonNeg()))
 
     # Return the model
     return model
@@ -55,7 +53,8 @@ def generate_lenet_300_100_model(activation='relu', categorical_output=True):
 def generate_sparse_lenet_300_100_model(activation='relu',
                                         categorical_output=True,
                                         builtin_sparsity=None,
-                                        conn_decay=None):
+                                        conn_decay=None,
+                                        num_classes=10):
     '''
     Model is defined in LeCun et al. 1998
     Gradient-Based Learning Applied to Document Recognition
@@ -101,7 +100,7 @@ def generate_sparse_lenet_300_100_model(activation='relu',
 
     # Fully-connected (FC) layer
     model.add(Flatten())
-    model.add(Sparse(units=10,
+    model.add(Sparse(units=num_classes,
                      # consume the last entry in builtin_sparsity
                      connectivity_level=builtin_sparsity.pop(0) or None,
                      connectivity_decay=conn_decay.pop(0) or None,

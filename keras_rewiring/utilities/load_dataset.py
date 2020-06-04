@@ -1,5 +1,6 @@
 from keras.datasets import mnist, cifar10, cifar100
 import keras
+import numpy as np
 from keras_rewiring.utilities.imagenet_utils import ImagenetDataGenerator
 
 
@@ -89,8 +90,28 @@ def load_and_preprocess_dataset(dataset_name, categorical_output=True,
                 'categorical_output': True}
 
     else:
-        raise NameError("Dataset {} unrecognised.".format(dataset_name))
-
+        import tensorflow_datasets as tfds
+        # data = tfds.load(dataset_name)
+        data = tfds.builder(dataset_name)
+        num_classes = data.info.features['label'].num_classes
+        dataset = data.as_dataset()
+        train, test = tfds.as_numpy(dataset["train"]), tfds.as_numpy(dataset["test"])
+        x_train = []
+        y_train = []
+        x_test = []
+        y_test = []
+        for example in train:
+            image, label = example['image'], example['label']
+            x_train.append(image)
+            y_train.append(label)
+        for example in test:
+            image, label = example['image'], example['label']
+            x_test.append(image)
+            y_test.append(label)
+        y_train = np.asarray(y_train)
+        y_test = np.asarray(y_test)
+        x_train = np.asarray(y_train)
+        x_test = np.asarray(y_test)
     if categorical_output:
         # convert class vectors to binary class matrices
         y_train = keras.utils.to_categorical(y_train, num_classes)
