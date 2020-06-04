@@ -1,7 +1,7 @@
-import keras
-from keras.models import Sequential
-from keras.layers import Dense, Flatten
-from keras.utils import CustomObjectScope
+import tensorflow.keras as keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.utils import CustomObjectScope
 from keras_rewiring.activations.noisy_softplus import NoisySoftplus
 from keras_rewiring.sparse_layer import Sparse
 

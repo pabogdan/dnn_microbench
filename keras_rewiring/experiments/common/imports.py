@@ -1,8 +1,8 @@
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras_rewiring.experiments.dnn_argparser import *
 # Keras stuff
-import keras
-from keras.models import load_model
+import tensorflow.keras as keras
+from tensorflow.keras.models import load_model
 from keras_rewiring.utilities.load_dataset import load_and_preprocess_dataset
 import numpy as np
 from keras_rewiring.sparse_layer import Sparse, SparseConv2D, SparseDepthwiseConv2D
@@ -12,7 +12,7 @@ from keras_rewiring.rewiring_callback import RewiringCallback
 import os
 import sys
 import tensorflow as tf
-from keras import backend as K
+from tensorflow.keras import backend as K
 import pylab as plt
 from matplotlib import cm as cm_mlib
 import matplotlib as mlib

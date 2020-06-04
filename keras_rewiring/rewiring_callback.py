@@ -1,8 +1,8 @@
-import keras
-from keras.callbacks import Callback
+import tensorflow.keras as keras
+from tensorflow.keras.callbacks import Callback
 import tensorflow as tf
 import numpy as np
-from keras import backend as K
+from tensorflow.keras import backend as K
 
 
 class RewiringCallback(Callback):
