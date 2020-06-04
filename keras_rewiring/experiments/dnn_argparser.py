@@ -89,7 +89,7 @@ parser.add_argument('--val_steps_per_epoch', type=int,
 parser.add_argument('--batch', type=int,
                     help='batch size', default=batch_size)
 
-parser.add_argument('--conn_level', type=float,
+parser.add_argument('--conn_level', type=float, nargs="+",
                     help='flat connectivity level used for rewiring',
                     default=None)
 
@@ -124,6 +124,10 @@ parser.add_argument('--result_dir', type=str,
 
 parser.add_argument('--just_test',
                     help='just test model',
+                    action="store_true")
+
+parser.add_argument('--test_as_dense',
+                    help='make dense model and apply weights from file',
                     action="store_true")
 
 args = parser.parse_args()

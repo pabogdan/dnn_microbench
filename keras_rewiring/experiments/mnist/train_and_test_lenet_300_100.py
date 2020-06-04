@@ -20,6 +20,7 @@ def train_and_test_lenet_300_100(filename):
         'mnist', categorical_output=is_output_categorical)
     x_train, y_train = dataset_info['train']
     x_test, y_test = dataset_info['test']
+    num_classes = dataset_info['num_classes']
 
     # reshape input to flatten data
     x_train = x_train.reshape(x_train.shape[0], 1, np.prod(x_train.shape[1:]))
@@ -35,7 +36,10 @@ def train_and_test_lenet_300_100(filename):
 
     loss = keras.losses.categorical_crossentropy
 
-    builtin_sparsity = [.01, .03, .3]
+    if args.conn_level:
+        builtin_sparsity = args.conn_level
+    else:
+        builtin_sparsity = [.01, .03, .3]
     final_conns = np.asarray(builtin_sparsity)
 
     conn_decay_values = None
@@ -46,7 +50,8 @@ def train_and_test_lenet_300_100(filename):
     if not args.sparse_layers:
         model = generate_lenet_300_100_model(
             activation=args.activation,
-            categorical_output=is_output_categorical)
+            categorical_output=is_output_categorical,
+            num_classes=num_classes)
     elif args.sparse_layers and not args.soft_rewiring:
         if args.conn_decay:
             print("Connectivity decay rewiring enabled", conn_decay_values)
@@ -54,17 +59,20 @@ def train_and_test_lenet_300_100(filename):
                 activation=args.activation,
                 categorical_output=is_output_categorical,
                 builtin_sparsity=builtin_sparsity,
-                conn_decay=conn_decay_values)
+                conn_decay=conn_decay_values,
+                num_classes=num_classes)
         else:
             model = generate_sparse_lenet_300_100_model(
                 activation=args.activation,
                 categorical_output=is_output_categorical,
-                builtin_sparsity=builtin_sparsity)
+                builtin_sparsity=builtin_sparsity,
+                num_classes=num_classes)
     else:
         print("Soft rewiring enabled", args.soft_rewiring)
         model = generate_sparse_lenet_300_100_model(
             activation=args.activation,
-            categorical_output=is_output_categorical)
+            categorical_output=is_output_categorical,
+            num_classes=num_classes)
     model.summary()
 
     # disable rewiring with sparse layers to see the performance of the layer
@@ -165,21 +173,44 @@ def test_lenet_300_100(filename, no_runs):
              'SparseDepthwiseConv2D': SparseDepthwiseConv2D,
              'NoisySGD': NoisySGD}
     model = keras.models.load_model(filename, custom_objects=c_obj)
+    if args.test_as_dense:
+        old_model_layers = model.layers
+        # check if
+        new_model_weights = []
+        for ol in old_model_layers:
+            curr_weights = ol.get_weights()
+            if len(curr_weights) == 3:
+                # assert that if a layer is sparse then where mask is 0 the kernel is also 0
+                x = (1 - curr_weights[2]).astype(bool)
+                # assert np.all(curr_weights[0][x] == 0), np.where(curr_weights[0][x] != 0)
+                curr_weights[0] *= curr_weights[2]
+                new_model_weights += curr_weights[:2]
+            else:
+                new_model_weights += curr_weights
+        keras.backend.clear_session()
+        model = generate_lenet_300_100_model(
+            activation=args.activation,
+            categorical_output=True,
+            num_classes=10)
+        model.set_weights(new_model_weights)
+        model.compile("adam", keras.losses.categorical_crossentropy,
+            metrics=['accuracy', keras.metrics.top_k_categorical_accuracy])
 
     print("no runs", no_runs)
     times = np.zeros(no_runs)
+    scores = []
     for ni in range(no_runs):
         tb_log_filename = "./inference_logs"
         callback_list = []
         if args.tensorboard:
-            tb = keras.callbacks.TensorBoard(
+            tb = keras.callbacks.tensorboard_v2.TensorBoard(
                 log_dir=tb_log_filename,
                 batch_size=batch, write_graph=True,
                 write_images=True,  histogram_freq=0,
                 embeddings_freq=0, embeddings_layer_names=None,
                 embeddings_metadata=None, embeddings_data=None,
                 update_freq='epoch',
-                profile_batch=50)
+                profile_batch='0, 1000')
             callback_list = [tb]
 
         start_time = plt.datetime.datetime.now()
@@ -188,13 +219,14 @@ def test_lenet_300_100(filename, no_runs):
         end_time = plt.datetime.datetime.now()
         total_time = end_time - start_time
         times[ni] = total_time.total_seconds()
+        scores.append(score)
     # print('Test Loss:', score[0])
     # print('Test Accuracy:', score[1])
     # print("Total time elapsed -- " + str(total_time))
     print("mean time", np.mean(times))
     print("std time", np.std(times))
     base_name_file = str(ntpath.basename(filename))[:-3]
-    csv_path = os.path.join(args.result_dir, "times_for_" + base_name_file + ".csv")
+    csv_path = os.path.join(args.result_dir, "as_dense_times_for_" + base_name_file + ".csv")
     np.savetxt(csv_path, times, delimiter=",")
 
     f = plt.figure(1, figsize=(9, 9), dpi=400)
@@ -208,13 +240,14 @@ def test_lenet_300_100(filename, no_runs):
     plt.savefig(os.path.join(args.result_dir,
                              "hist_times_for_" + base_name_file + ".png"))
     plt.close(f)
-    return times
+    return scores, times
 
 
 if __name__ == "__main__":
     for i in args.model:
         if args.just_test:
             no_runs = 10
-            t = test_lenet_300_100(i, no_runs)
+            s, t = test_lenet_300_100(i, no_runs)
+            print("The score are:", s)
         else:
             train_and_test_lenet_300_100(i)
