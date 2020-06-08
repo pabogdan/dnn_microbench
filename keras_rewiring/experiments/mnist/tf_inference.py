@@ -10,15 +10,19 @@ from keras_rewiring.experiments.mnist.lenet_300_100_model_setup import \
     convert_model_to_tf
 
 
-def test_lenet_300_100_using_tf(filename, no_runs):
+def test_lenet_300_100_using_tf(filename, no_runs, batch=None):
     print("=" * 80)
     print(i)
+    print("TESTING BATCH SIZE:", batch)
     print("-" * 80)
     dataset_info = load_and_preprocess_dataset(
         'mnist', categorical_output=False)
     x_test, y_test = dataset_info['test']
-    x_test = x_test.reshape(x_test.shape[0], 1, np.prod(x_test.shape[1:]))
-    batch = 10
+    if batch is not None:
+        x_test = x_test.reshape(x_test.shape[0]//batch, batch, np.prod(x_test.shape[1:]))
+    else:
+        x_test = x_test.reshape(x_test.shape[0], 1, np.prod(x_test.shape[1:]))
+        batch = x_test.shape[0]
     # Reinstantiate the model
     c_obj = {'Sparse': Sparse,
              'SparseConv2D': SparseConv2D,
@@ -28,9 +32,6 @@ def test_lenet_300_100_using_tf(filename, no_runs):
 
     model = convert_model_to_tf(
         model)
-
-    # Save current model as SavedModel
-
 
     print("no runs", no_runs)
     times = np.zeros(no_runs)
@@ -49,15 +50,19 @@ def test_lenet_300_100_using_tf(filename, no_runs):
                 profile_batch='0, 1000')
             callback_list = [tb]
 
-        start_time = plt.datetime.datetime.now()
-        softmaxed_predictions = model(x_test)
-        end_time = plt.datetime.datetime.now()
-        predictions = np.argmax(np.asarray(softmaxed_predictions), axis=-1)
+        softmaxed_predictions = []
+        for batch_number in range(x_test.shape[0]//batch):
+            start_time = plt.datetime.datetime.now()
+            sp = model(x_test[batch_number*batch:(batch_number+1)*batch])
+            end_time = plt.datetime.datetime.now()
+            softmaxed_predictions.append(np.asarray(sp))
+            total_time = end_time - start_time
+            times[ni] = total_time.total_seconds() / float(batch)
+
+        predictions = np.argmax(np.asarray(softmaxed_predictions).reshape(y_test.size, 10), axis=-1)
 
         # Report accuracy and generate
         # print(classification_report(y_test, predictions))
-        total_time = end_time - start_time
-        times[ni] = total_time.total_seconds()
         scores.append(accuracy_score(y_test, predictions, normalize=True))
     print("mean time", np.mean(times))
     print("std time", np.std(times))
@@ -82,6 +87,11 @@ def test_lenet_300_100_using_tf(filename, no_runs):
 if __name__ == "__main__":
     for i in args.model:
         if args.just_test:
-            no_runs = 10
+            no_runs = 20
+            s, t = test_lenet_300_100_using_tf(i, no_runs, batch=1)
+            print("The score are:", s)
+        if args.just_test:
+            no_runs = 20
             s, t = test_lenet_300_100_using_tf(i, no_runs)
             print("The score are:", s)
+
