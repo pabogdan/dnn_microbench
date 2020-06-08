@@ -67,7 +67,7 @@ def test_lenet_300_100_using_tf(filename, no_runs, batch=None):
     print("mean time", np.mean(times))
     print("std time", np.std(times))
     base_name_file = str(ntpath.basename(filename))[:-3]
-    csv_path = os.path.join(args.result_dir, "tf_" + base_name_file + ".csv")
+    csv_path = os.path.join(args.result_dir, "tf_batch_{}_".format(batch) + base_name_file + ".csv")
     np.savetxt(csv_path, times, delimiter=",")
 
     f = plt.figure(1, figsize=(9, 9), dpi=400)
@@ -79,7 +79,7 @@ def test_lenet_300_100_using_tf(filename, no_runs, batch=None):
     plt.xlabel("Inference duration (seconds)")
     plt.tight_layout()
     plt.savefig(os.path.join(args.result_dir,
-                             "tf_hist_times_for_" + base_name_file + ".png"))
+                             "tf_batch_{}_hist_times_for_".format(batch) + base_name_file + ".png"))
     plt.close(f)
     return scores, times
 
