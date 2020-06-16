@@ -210,7 +210,7 @@ def test_lenet_300_100(filename, no_runs):
                 embeddings_freq=0, embeddings_layer_names=None,
                 embeddings_metadata=None, embeddings_data=None,
                 update_freq='epoch',
-                profile_batch='0, 1000')
+                profile_batch=50)
             callback_list = [tb]
 
         start_time = plt.datetime.datetime.now()
@@ -220,13 +220,12 @@ def test_lenet_300_100(filename, no_runs):
         total_time = end_time - start_time
         times[ni] = total_time.total_seconds()
         scores.append(score)
-    # print('Test Loss:', score[0])
-    # print('Test Accuracy:', score[1])
-    # print("Total time elapsed -- " + str(total_time))
     print("mean time", np.mean(times))
     print("std time", np.std(times))
     base_name_file = str(ntpath.basename(filename))[:-3]
-    csv_path = os.path.join(args.result_dir, "as_dense_times_for_" + base_name_file + ".csv")
+    if args.test_as_dense:
+        base_name_file = "as_dense_times_for_" + base_name_file
+    csv_path = os.path.join(args.result_dir, base_name_file + ".csv")
     np.savetxt(csv_path, times, delimiter=",")
 
     f = plt.figure(1, figsize=(9, 9), dpi=400)

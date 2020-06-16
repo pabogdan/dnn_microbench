@@ -165,21 +165,32 @@ def convert_model_to_tf(model):
 
     tf.config.experimental_run_functions_eagerly(True)
 
+
+
     # Define the computational graph
     @tf.function
-    def dense_forward_pass(x):
-        # layer 1
-        a_1 = tf.matmul(x, l300_weights) + l300_biases
-        activation_1 = tf.nn.relu(a_1)
-        # layer 2
-        a_2 = tf.matmul(activation_1, l100_weights) + l100_biases
-        activation_2 = tf.nn.relu(a_2)
-        # output layer
-        logits_3 = tf.matmul(activation_2, l10_weights) + l10_biases
-        return tf.nn.softmax(logits_3)
+    def dense_forward_pass(x, writer=None, log=None):
+
+        with tf.name_scope("dense"):
+            # with writer.as_default():
+            #     tf.summary.trace_on(graph=True, profiler=True)
+            # layer 1
+            a_1 = tf.matmul(x, l300_weights) + l300_biases
+            activation_1 = tf.nn.relu(a_1)
+            # layer 2
+            a_2 = tf.matmul(activation_1, l100_weights) + l100_biases
+            activation_2 = tf.nn.relu(a_2)
+            # output layer
+            logits_3 = tf.matmul(activation_2, l10_weights) + l10_biases
+            # with writer.as_default():
+            #     tf.summary.trace_on(graph=True, profiler=True)
+            #     tf.summary.trace_export(name="dense_function",
+            #                             profiler_outdir=log)
+            #     writer.flush()
+            return tf.nn.softmax(logits_3)
 
     @tf.function
-    def sparse_forward_pass(x):
+    def sparse_forward_pass(x, writer=None, log=None):
         # layer 1
         # masked_x = tf.sparse.mask(x, np.where(layers[0].get_weights()[-1].astype(bool)))
         # masked_x = tf.boolean_mask(x, layers[0].get_weights()[-1].astype(bool))

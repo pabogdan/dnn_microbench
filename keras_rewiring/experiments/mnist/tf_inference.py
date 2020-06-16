@@ -37,27 +37,33 @@ def test_lenet_300_100_using_tf(filename, no_runs, batch=None):
     times = np.zeros(no_runs)
     scores = []
     for ni in range(no_runs):
-        tb_log_filename = "./tf_inference_logs"
-        callback_list = []
+        tb_log_filename = "./tf_inference_logs/" + filename + "/"
         if args.tensorboard:
-            tb = keras.callbacks.tensorboard_v2.TensorBoard(
-                log_dir=tb_log_filename,
-                batch_size=batch, write_graph=True,
-                write_images=True,  histogram_freq=0,
-                embeddings_freq=0, embeddings_layer_names=None,
-                embeddings_metadata=None, embeddings_data=None,
-                update_freq='epoch',
-                profile_batch='0, 1000')
-            callback_list = [tb]
-
+            writer = tf.summary.create_file_writer(tb_log_filename)
+            writer.set_as_default()
+            with writer.as_default():
+                tf.summary.trace_on(graph=True, profiler=True)
+            # tf.summary.trace_on(graph=True, profiler=True)
         softmaxed_predictions = []
         for batch_number in range(x_test.shape[0]//batch):
+            tf.summary.experimental.set_step(
+                batch_number
+            )
             start_time = plt.datetime.datetime.now()
-            sp = model(x_test[batch_number*batch:(batch_number+1)*batch])
+            sp = model(x_test[batch_number*batch:(batch_number+1)*batch],
+                       writer=writer, log=tb_log_filename
+                       )
             end_time = plt.datetime.datetime.now()
             softmaxed_predictions.append(np.asarray(sp))
             total_time = end_time - start_time
             times[ni] = total_time.total_seconds() / float(batch)
+
+        # add profiling info
+        if args.tensorboard:
+            with writer.as_default():
+                tf.summary.trace_export(name="dense_function",
+                                        profiler_outdir=tb_log_filename)
+                writer.flush()
 
         predictions = np.argmax(np.asarray(softmaxed_predictions).reshape(y_test.size, 10), axis=-1)
 
