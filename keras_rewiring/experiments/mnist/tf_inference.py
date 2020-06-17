@@ -37,7 +37,7 @@ def test_lenet_300_100_using_tf(filename, no_runs, batch=None):
     times = np.zeros(no_runs)
     scores = []
     for ni in range(no_runs):
-        tb_log_filename = "./tf_inference_logs/" + filename + "_" + str(no_runs) + "/"
+        tb_log_filename = "./tf_inference_logs/" + filename + "_batch_" + str(batch) + "/"
         if args.tensorboard:
             writer = tf.summary.create_file_writer(tb_log_filename)
             writer.set_as_default()
