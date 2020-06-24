@@ -33,18 +33,26 @@ def test_lenet_300_100_using_tf(filename, no_runs, batch=None):
     model = convert_model_to_tf(
         model)
 
+    keyword = "trained_model_of_lenet_300_100_relu_crossent_"
+    if keyword in filename:
+        shorter_fname = filename.replace(keyword, "")
+    else:
+        shorter_fname = filename
+
+
     print("no runs", no_runs)
     times = np.zeros(no_runs)
     scores = []
     for ni in range(no_runs):
-        tb_log_filename = "./tf_inference_logs/" + filename + "_batch_" + str(batch) + "/"
+        tb_log_filename = "./tf_inference_logs/" + shorter_fname + "_batch_" + str(batch) + "/"
         if args.tensorboard:
             writer = tf.summary.create_file_writer(tb_log_filename)
             writer.set_as_default()
             with writer.as_default():
-                tf.summary.trace_on(graph=True, profiler=True)
+                tf.summary.trace_on(graph=True, profiler=False)
             # tf.summary.trace_on(graph=True, profiler=True)
         softmaxed_predictions = []
+        tf.profiler.experimental.start(tb_log_filename)
         for batch_number in range(x_test.shape[0]//batch):
             tf.summary.experimental.set_step(
                 batch_number
@@ -57,12 +65,11 @@ def test_lenet_300_100_using_tf(filename, no_runs, batch=None):
             softmaxed_predictions.append(np.asarray(sp))
             total_time = end_time - start_time
             times[ni] = total_time.total_seconds() / float(batch)
-
+        tf.profiler.experimental.stop()
         # add profiling info
         if args.tensorboard:
             with writer.as_default():
-                tf.summary.trace_export(name="dense_function",
-                                        profiler_outdir=tb_log_filename)
+                tf.summary.trace_export(name="dense_function")
                 writer.flush()
 
         predictions = np.argmax(np.asarray(softmaxed_predictions).reshape(y_test.size, 10), axis=-1)

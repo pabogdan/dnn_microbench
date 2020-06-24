@@ -163,9 +163,7 @@ def convert_model_to_tf(model):
         l100_weights = tf.constant(layers[1].get_weights()[0]*layers[1].get_weights()[-1])
         l10_weights = tf.constant(layers[-1].get_weights()[0]*layers[-1].get_weights()[-1])
 
-    tf.config.experimental_run_functions_eagerly(True)
-
-
+    # tf.config.experimental_run_functions_eagerly(True)
 
     # Define the computational graph
     @tf.function
