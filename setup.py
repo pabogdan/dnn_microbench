@@ -14,12 +14,12 @@ setup(
 
     install_requires=["numpy",
                       "scipy",
-                      "keras<=2.3.1",
+                      "keras",
                       "matplotlib",
-                      "tensorflow<=2.2.1",
+                      "tensorflow",
                       "argparse",
                       "pillow",
-                      "statsmodel",
+                      "statsmodels",
                       "colorama"],
 
     classifiers=[
