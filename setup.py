@@ -19,7 +19,7 @@ setup(
                       "tensorflow<=2.2.1",
                       "argparse",
                       "pillow",
-                      "statsmodel",
+                      "statsmodels",
                       "colorama"],
 
     classifiers=[
